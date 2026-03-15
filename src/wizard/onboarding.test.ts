@@ -59,12 +59,8 @@ const finalizeOnboardingWizard = vi.hoisted(() =>
     return { launchedTui: true };
   }),
 );
-const listChannelPlugins = vi.hoisted(() => vi.fn(() => []));
 const logConfigUpdated = vi.hoisted(() => vi.fn(() => {}));
 const setupInternalHooks = vi.hoisted(() => vi.fn(async (cfg) => cfg));
-
-const setupChannels = vi.hoisted(() => vi.fn(async (cfg) => cfg));
-const setupSkills = vi.hoisted(() => vi.fn(async (cfg) => cfg));
 const healthCommand = vi.hoisted(() => vi.fn(async () => {}));
 const ensureWorkspaceAndSessions = vi.hoisted(() => vi.fn(async () => {}));
 const writeConfigFile = vi.hoisted(() => vi.fn(async () => {}));
@@ -88,14 +84,6 @@ const ensureControlUiAssetsBuilt = vi.hoisted(() => vi.fn(async () => ({ ok: tru
 const runTui = vi.hoisted(() => vi.fn(async (_options: unknown) => {}));
 const setupOnboardingShellCompletion = vi.hoisted(() => vi.fn(async () => {}));
 const probeGatewayReachable = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
-
-vi.mock("../commands/onboard-channels.js", () => ({
-  setupChannels,
-}));
-
-vi.mock("../commands/onboard-skills.js", () => ({
-  setupSkills,
-}));
 
 vi.mock("../agents/auth-profiles.js", () => ({
   ensureAuthProfileStore,
@@ -170,10 +158,6 @@ vi.mock("../daemon/systemd.js", () => ({
 
 vi.mock("../infra/control-ui-assets.js", () => ({
   ensureControlUiAssetsBuilt,
-}));
-
-vi.mock("../channels/plugins/index.js", () => ({
-  listChannelPlugins,
 }));
 
 vi.mock("../config/logging.js", () => ({
@@ -301,8 +285,11 @@ describe("runOnboardingWizard", () => {
     );
 
     expect(select).not.toHaveBeenCalled();
-    expect(setupChannels).not.toHaveBeenCalled();
-    expect(setupSkills).not.toHaveBeenCalled();
+    expect(ensureWorkspaceAndSessions).toHaveBeenCalledWith(
+      "/tmp/openclaw-workspace",
+      runtime,
+      expect.objectContaining({ skipBootstrap: true }),
+    );
     expect(healthCommand).not.toHaveBeenCalled();
     expect(runTui).not.toHaveBeenCalled();
   });
@@ -398,10 +385,8 @@ describe("runOnboardingWizard", () => {
     }
   });
 
-  it("resolves gateway.auth.password SecretRef for local onboarding probe", async () => {
-    const previous = process.env.OPENCLAW_GATEWAY_PASSWORD;
-    process.env.OPENCLAW_GATEWAY_PASSWORD = "gateway-ref-password"; // pragma: allowlist secret
-    probeGatewayReachable.mockClear();
+  it("forces local-only gateway settings during onboarding", async () => {
+    writeConfigFile.mockClear();
     readConfigFileSnapshot.mockResolvedValueOnce({
       path: "/tmp/.openclaw/openclaw.json",
       exists: true,
@@ -413,11 +398,16 @@ describe("runOnboardingWizard", () => {
         gateway: {
           auth: {
             mode: "password",
-            password: {
-              source: "env",
-              provider: "default",
-              id: "OPENCLAW_GATEWAY_PASSWORD",
-            },
+            password: "existing-password", // pragma: allowlist secret
+          },
+          bind: "lan",
+          remote: {
+            url: "wss://gateway.example.invalid/ws",
+            token: "remote-token",
+          },
+          tailscale: {
+            mode: "serve",
+            resetOnExit: true,
           },
         },
       },
@@ -434,35 +424,34 @@ describe("runOnboardingWizard", () => {
     const prompter = buildWizardPrompter({ select });
     const runtime = createRuntime();
 
-    try {
-      await runOnboardingWizard(
-        {
-          acceptRisk: true,
-          flow: "quickstart",
-          mode: "local",
-          authChoice: "skip",
-          installDaemon: false,
-          skipProviders: true,
-          skipSkills: true,
-          skipSearch: true,
-          skipHealth: true,
-          skipUi: true,
-        },
-        runtime,
-        prompter,
-      );
-    } finally {
-      if (previous === undefined) {
-        delete process.env.OPENCLAW_GATEWAY_PASSWORD;
-      } else {
-        process.env.OPENCLAW_GATEWAY_PASSWORD = previous;
-      }
-    }
+    await runOnboardingWizard(
+      {
+        acceptRisk: true,
+        flow: "quickstart",
+        mode: "local",
+        authChoice: "skip",
+        installDaemon: false,
+        skipProviders: true,
+        skipSkills: true,
+        skipSearch: true,
+        skipHealth: true,
+        skipUi: true,
+      },
+      runtime,
+      prompter,
+    );
 
-    expect(probeGatewayReachable).toHaveBeenCalledWith(
+    expect(writeConfigFile).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        url: "ws://127.0.0.1:18789",
-        password: "gateway-ref-password", // pragma: allowlist secret
+        gateway: expect.objectContaining({
+          mode: "local",
+          bind: "loopback",
+          remote: undefined,
+          tailscale: expect.objectContaining({
+            mode: "off",
+            resetOnExit: false,
+          }),
+        }),
       }),
     );
   });

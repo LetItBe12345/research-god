@@ -48,6 +48,46 @@ import { redactRunIdentifier, resolveRunWorkspaceDir } from "./workspace-run.js"
 
 const log = createSubsystemLogger("agent/claude-cli");
 
+function buildClaudeCodeExecutorPrompt(): string {
+  return [
+    "You are Claude Code running headless as an OpenClaw executor.",
+    "OpenClaw is the coordinator. Execute only the assigned task.",
+    "Keep tool use autonomous and non-interactive.",
+    "Return only this exact 5-line report format:",
+    "STATUS: <done|blocked|failed>",
+    "TASK_ID: <id-or-none>",
+    "SUMMARY: <one sentence, <= 12 words>",
+    "FILES: <comma-separated repo paths or none>",
+    "VERIFY: <one short verification line or not run>",
+    "Do not output any extra text before or after those 5 lines.",
+  ].join("\n");
+}
+
+function buildCodexExecutorPrompt(): string {
+  return [
+    "You are Codex running headless as an OpenClaw executor.",
+    "OpenClaw is the coordinator. Execute only the assigned task.",
+    "Work autonomously with maximum local permissions and no approval prompts.",
+    "Return only this exact 5-line report format:",
+    "STATUS: <done|blocked|failed>",
+    "TASK_ID: <id-or-none>",
+    "SUMMARY: <one sentence, <= 12 words>",
+    "FILES: <comma-separated repo paths or none>",
+    "VERIFY: <one short verification line or not run>",
+    "Do not output any extra text before or after those 5 lines.",
+  ].join("\n");
+}
+
+function resolveCliExecutorPrompt(provider: string): string {
+  if (provider === "claude-cli") {
+    return buildClaudeCodeExecutorPrompt();
+  }
+  if (provider === "codex-cli") {
+    return buildCodexExecutorPrompt();
+  }
+  return "";
+}
+
 export async function runCliAgent(params: {
   sessionId: string;
   sessionKey?: string;
@@ -96,8 +136,10 @@ export async function runCliAgent(params: {
   const modelId = (params.model ?? "default").trim() || "default";
   const normalizedModel = normalizeCliModel(modelId, backend);
   const modelDisplay = `${params.provider}/${modelId}`;
+  const executorPrompt = resolveCliExecutorPrompt(params.provider);
 
   const extraSystemPrompt = [
+    backend.systemPromptArg ? executorPrompt : "",
     params.extraSystemPrompt?.trim(),
     "Tools are disabled in this session. Do not call tools.",
   ]
@@ -211,6 +253,9 @@ export async function runCliAgent(params: {
     let imagePaths: string[] | undefined;
     let cleanupImages: (() => Promise<void>) | undefined;
     let prompt = params.prompt;
+    if (executorPrompt && !backend.systemPromptArg) {
+      prompt = `${executorPrompt}\n\nTask:\n${prompt}`;
+    }
     if (params.images && params.images.length > 0) {
       const imagePayload = await writeCliImages(params.images);
       imagePaths = imagePayload.paths;

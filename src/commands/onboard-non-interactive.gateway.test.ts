@@ -186,6 +186,12 @@ describe("onboard (non-interactive): gateway and remote auth", () => {
         runtime,
       );
 
+      expect(ensureWorkspaceAndSessionsMock).toHaveBeenCalledWith(
+        workspace,
+        runtime,
+        expect.objectContaining({ skipBootstrap: true }),
+      );
+
       const configPath = resolveStateConfigPath(process.env, stateDir);
       const cfg = await readJsonFile<{
         gateway?: { auth?: { mode?: string; token?: string } };
