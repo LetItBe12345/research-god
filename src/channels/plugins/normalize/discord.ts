@@ -1,5 +1,8 @@
 function stripDiscordPrefix(value: string): string {
-  return value.trim().replace(/^discord:/i, "").trim();
+  return value
+    .trim()
+    .replace(/^discord:/i, "")
+    .trim();
 }
 
 export function normalizeDiscordMessagingTarget(raw: string): string | undefined {
@@ -22,6 +25,10 @@ export function normalizeDiscordMessagingTarget(raw: string): string | undefined
     return `channel:${trimmed}`;
   }
   return undefined;
+}
+
+export function normalizeDiscordOutboundTarget(raw: string): string | undefined {
+  return normalizeDiscordMessagingTarget(raw);
 }
 
 export function looksLikeDiscordTargetId(raw: string): boolean {

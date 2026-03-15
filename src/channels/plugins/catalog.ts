@@ -39,6 +39,24 @@ type CatalogOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
+const BUILTIN_CHANNEL_CATALOG: ChannelPluginCatalogEntry[] = [
+  {
+    id: "msteams",
+    meta: {
+      id: "msteams",
+      label: "Microsoft Teams",
+      selectionLabel: "Microsoft Teams",
+      aliases: ["teams"],
+      docsPath: "/channels/msteams",
+      blurb: "Microsoft Teams channel plugin",
+    },
+    install: {
+      npmSpec: "@openclaw/msteams",
+      defaultChoice: "npm",
+    },
+  },
+];
+
 const ORIGIN_PRIORITY: Record<PluginOrigin, number> = {
   config: 0,
   workspace: 1,
@@ -289,6 +307,11 @@ export function listChannelPluginCatalogEntries(
   for (const entry of externalEntries) {
     if (!resolved.has(entry.id)) {
       resolved.set(entry.id, { entry, priority: 99 });
+    }
+  }
+  for (const entry of BUILTIN_CHANNEL_CATALOG) {
+    if (!resolved.has(entry.id)) {
+      resolved.set(entry.id, { entry, priority: 98 });
     }
   }
 

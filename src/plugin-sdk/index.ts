@@ -62,16 +62,6 @@ export type {
 } from "../channels/plugins/types.js";
 export type { ChannelConfigSchema, ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type {
-  ThreadBindingManager,
-  ThreadBindingRecord,
-  ThreadBindingTargetKind,
-} from "./discord.js";
-export {
-  autoBindSpawnedDiscordSubagent,
-  listThreadBindingsBySessionKey,
-  unbindThreadBindingsBySessionKey,
-} from "./discord.js";
-export type {
   AcpRuntimeCapabilities,
   AcpRuntimeControl,
   AcpRuntimeDoctorReport,

@@ -16,7 +16,18 @@ export async function runDaemonStatus(opts: DaemonStatusOptions) {
       probe: Boolean(opts.probe),
       deep: Boolean(opts.deep),
     });
-    printDaemonStatus(status, { json: Boolean(opts.json) });
+    try {
+      printDaemonStatus(status, { json: Boolean(opts.json) });
+    } catch (err) {
+      if (opts.json) {
+        throw err;
+      }
+      const rich = isRich();
+      defaultRuntime.error(
+        colorize(rich, theme.error, `Gateway status rendering failed: ${String(err)}`),
+      );
+      printDaemonStatus(status, { json: true });
+    }
     if (opts.requireRpc && !status.rpc?.ok) {
       defaultRuntime.exit(1);
     }

@@ -154,8 +154,14 @@ async function loadDaemonConfigContext(
     cliIO.readConfigFileSnapshot().catch(() => null),
     daemonIO.readConfigFileSnapshot().catch(() => null),
   ]);
-  const cliCfg = cliIO.loadConfig();
-  const daemonCfg = daemonIO.loadConfig();
+  let cliCfg: OpenClawConfig = {} as OpenClawConfig;
+  let daemonCfg: OpenClawConfig = {} as OpenClawConfig;
+  try {
+    cliCfg = cliIO.loadConfig();
+  } catch {}
+  try {
+    daemonCfg = daemonIO.loadConfig();
+  } catch {}
 
   const cliConfigSummary: ConfigSummary = {
     path: cliSnapshot?.path ?? cliConfigPath,
@@ -277,7 +283,23 @@ export async function gatherDaemonStatus(
   const configAudit = await auditGatewayServiceConfig({
     env: process.env,
     command,
-  });
+  }).catch(() => ({ ok: false, issues: [] }));
+  const daemonContext = await loadDaemonConfigContext(command?.environment).catch(() => ({
+    mergedDaemonEnv: { ...(process.env as Record<string, string | undefined>) },
+    cliCfg: {} as OpenClawConfig,
+    daemonCfg: {} as OpenClawConfig,
+    cliConfigSummary: {
+      path: resolveConfigPath(process.env, resolveStateDir(process.env)),
+      exists: false,
+      valid: true,
+    },
+    daemonConfigSummary: {
+      path: resolveConfigPath(process.env, resolveStateDir(process.env)),
+      exists: false,
+      valid: true,
+    },
+    configMismatch: false,
+  }));
   const {
     mergedDaemonEnv,
     cliCfg,
@@ -285,13 +307,27 @@ export async function gatherDaemonStatus(
     cliConfigSummary,
     daemonConfigSummary,
     configMismatch,
-  } = await loadDaemonConfigContext(command?.environment);
+  } = daemonContext;
   const { gateway, daemonPort, cliPort, probeUrlOverride } = await resolveGatewayStatusSummary({
     cliCfg,
     daemonCfg,
     mergedDaemonEnv,
     commandProgramArguments: command?.programArguments,
     rpcUrlOverride: opts.rpc.url,
+  }).catch(() => {
+    const fallbackPort = parsePortFromArgs(command?.programArguments) ?? 18789;
+    return {
+      gateway: {
+        bindMode: "loopback" as GatewayBindMode,
+        bindHost: "127.0.0.1",
+        port: fallbackPort,
+        portSource: parsePortFromArgs(command?.programArguments) ? "service args" : "env/config",
+        probeUrl: `ws://127.0.0.1:${fallbackPort}`,
+      },
+      daemonPort: fallbackPort,
+      cliPort: fallbackPort,
+      probeUrlOverride: trimToUndefined(opts.rpc.url) ?? null,
+    };
   });
   const { portStatus, portCliStatus } = await inspectDaemonPortStatuses({
     daemonPort,

@@ -5,26 +5,78 @@ import { applyDirectoryQueryAndLimit, toDirectoryEntries } from "./directory-con
 import { normalizeSlackMessagingTarget } from "./normalize/slack.js";
 import type { ChannelDirectoryEntry } from "./types.js";
 
-function inspectDiscordAccount(): {
-  config: { allowFrom?: unknown[]; dm?: { allowFrom?: unknown[] }; dms?: Record<string, unknown>; guilds?: Record<string, { users?: unknown[]; channels?: Record<string, { users?: unknown[] }> }> };
+function inspectDiscordAccount(params: { cfg: OpenClawConfig; accountId?: string | null }): {
+  config: {
+    allowFrom?: unknown[];
+    dm?: { allowFrom?: unknown[] };
+    dms?: Record<string, unknown>;
+    guilds?: Record<
+      string,
+      { users?: unknown[]; channels?: Record<string, { users?: unknown[] }> }
+    >;
+  };
 } {
-  return { config: {} };
+  const channel = params.cfg.channels?.discord ?? {};
+  const accountId = params.accountId?.trim();
+  const account =
+    accountId && accountId !== "default"
+      ? (params.cfg.channels?.discord?.accounts?.[accountId] ?? {})
+      : {};
+  return { config: { ...channel, ...account } };
 }
 
-function inspectSlackAccount(): {
-  config: { allowFrom?: unknown[]; dm?: { allowFrom?: unknown[] }; dms?: Record<string, unknown>; channels?: Record<string, { users?: unknown[] }> };
+function inspectSlackAccount(params: { cfg: OpenClawConfig; accountId?: string | null }): {
+  config: {
+    allowFrom?: unknown[];
+    dm?: { allowFrom?: unknown[] };
+    dms?: Record<string, unknown>;
+    channels?: Record<string, { users?: unknown[] }>;
+  };
+  dm?: { allowFrom?: unknown[] };
 } {
-  return { config: {} };
+  const channel = params.cfg.channels?.slack ?? {};
+  const accountId = params.accountId?.trim();
+  const account =
+    accountId && accountId !== "default"
+      ? (params.cfg.channels?.slack?.accounts?.[accountId] ?? {})
+      : {};
+  const config = { ...channel, ...account };
+  return {
+    config,
+    dm:
+      config.dm && typeof config.dm === "object" && !Array.isArray(config.dm)
+        ? (config.dm as { allowFrom?: unknown[] })
+        : undefined,
+  };
 }
 
-function inspectTelegramAccount(): {
-  config: { allowFrom?: Array<string | number>; dms?: Record<string, unknown>; groups?: Record<string, unknown> };
+function inspectTelegramAccount(params: { cfg: OpenClawConfig; accountId?: string | null }): {
+  config: {
+    allowFrom?: Array<string | number>;
+    dms?: Record<string, unknown>;
+    groups?: Record<string, unknown>;
+  };
 } {
-  return { config: {} };
+  const channel = params.cfg.channels?.telegram ?? {};
+  const accountId = params.accountId?.trim();
+  const account =
+    accountId && accountId !== "default"
+      ? (params.cfg.channels?.telegram?.accounts?.[accountId] ?? {})
+      : {};
+  return { config: { ...channel, ...account } };
 }
 
-function resolveWhatsAppAccount(): { allowFrom?: string[]; groups?: Record<string, unknown> } {
-  return {};
+function resolveWhatsAppAccount(params: { cfg: OpenClawConfig; accountId?: string | null }): {
+  allowFrom?: string[];
+  groups?: Record<string, unknown>;
+} {
+  const channel = params.cfg.channels?.whatsapp ?? {};
+  const accountId = params.accountId?.trim();
+  const account =
+    accountId && accountId !== "default"
+      ? (params.cfg.channels?.whatsapp?.accounts?.[accountId] ?? {})
+      : {};
+  return { ...channel, ...account };
 }
 
 export type DirectoryConfigParams = {

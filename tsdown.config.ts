@@ -40,12 +40,7 @@ function nodeBuildConfig(config: Record<string, unknown>) {
   };
 }
 
-const pluginSdkEntrypoints = [
-  "core",
-  "compat",
-  "account-id",
-  "keyed-async-queue",
-] as const;
+const pluginSdkEntrypoints = ["core", "compat", "account-id", "keyed-async-queue"] as const;
 
 export default defineConfig([
   nodeBuildConfig({
@@ -67,8 +62,6 @@ export default defineConfig([
       "channels/plugins/agent-tools/whatsapp-login":
         "src/channels/plugins/agent-tools/whatsapp-login.ts",
       "line/accounts": "src/line/accounts.ts",
-      "line/send": "src/line/send.ts",
-      "line/template-messages": "src/line/template-messages.ts",
     },
   }),
   nodeBuildConfig({

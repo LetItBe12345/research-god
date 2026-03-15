@@ -8,7 +8,7 @@ export function resolveWhatsAppOutboundTarget(params: {
     return { ok: false, error: new Error("Missing WhatsApp target") };
   }
   const allowFrom = (params.allowFrom ?? []).map((entry) => entry.trim()).filter(Boolean);
-  if (params.mode === "implicit" && allowFrom.length > 0 && !allowFrom.includes(normalized)) {
+  if (allowFrom.length > 0 && !allowFrom.includes("*") && !allowFrom.includes(normalized)) {
     return {
       ok: false,
       error: new Error(`WhatsApp target not allowed: ${normalized}`),

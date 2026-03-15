@@ -2035,16 +2035,41 @@ describe("loadOpenClawPlugins", () => {
       }
     `;
 
-    execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        OPENCLAW_HOME: undefined,
-        OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
-      },
-      encoding: "utf-8",
-      stdio: "pipe",
-    });
+    try {
+      execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          OPENCLAW_HOME: undefined,
+          OPENCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+        },
+        encoding: "utf-8",
+        stdio: "pipe",
+      });
+    } catch (error) {
+      const execError = error as NodeJS.ErrnoException & { status?: number | null; pid?: number };
+      const likelySandboxSpawnFalsePositive =
+        execError.code === "EPERM" &&
+        execError.status === 0 &&
+        typeof execError.pid === "number" &&
+        execError.pid > 0;
+      if (!likelySandboxSpawnFalsePositive) {
+        throw error;
+      }
+
+      const registry = loadOpenClawPlugins({
+        cache: false,
+        workspaceDir: plugin.dir,
+        config: {
+          plugins: {
+            load: { paths: [plugin.file] },
+            allow: ["legacy-root-import"],
+          },
+        },
+      });
+      const record = registry.plugins.find((entry) => entry.id === "legacy-root-import");
+      expect(record?.status).toBe("loaded");
+    }
   });
 
   it("prefers dist plugin-sdk alias when loader runs from dist", () => {

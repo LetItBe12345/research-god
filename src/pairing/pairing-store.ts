@@ -6,15 +6,23 @@ function resolveBaseDir(env: NodeJS.ProcessEnv = process.env): string {
   return env.OPENCLAW_STATE_DIR?.trim() || path.join(os.homedir(), ".openclaw");
 }
 
+function resolveCredentialsDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveBaseDir(env), "credentials");
+}
+
 function readAllowFromFile(targetPath: string): string[] {
   if (!fs.existsSync(targetPath)) {
     return [];
   }
   try {
     const raw = fs.readFileSync(targetPath, "utf8");
-    const parsed = JSON.parse(raw) as { allowFrom?: unknown } | unknown;
-    const allowFrom = Array.isArray((parsed as { allowFrom?: unknown })?.allowFrom)
-      ? (parsed as { allowFrom: unknown[] }).allowFrom
+    const parsed: unknown = JSON.parse(raw);
+    const parsedRecord =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as { allowFrom?: unknown })
+        : undefined;
+    const allowFrom = Array.isArray(parsedRecord?.allowFrom)
+      ? parsedRecord.allowFrom
       : Array.isArray(parsed)
         ? parsed
         : [];
@@ -56,16 +64,28 @@ export async function upsertChannelPairingRequest(_params: {
   return { code: "000000", created: false };
 }
 
+export async function listChannelPairingRequests(
+  _channel: string,
+  _env: NodeJS.ProcessEnv = process.env,
+  _accountId?: string,
+): Promise<Array<{ code: string; id: string; meta?: unknown; createdAt: string }>> {
+  return [];
+}
+
+export async function approveChannelPairingCode(_params: {
+  channel: string;
+  code: string;
+  accountId?: string;
+}): Promise<{ code: string; id: string } | null> {
+  return null;
+}
+
 export async function addChannelAllowFromStoreEntry(_params: {
   channel: string;
   entry: string;
   accountId?: string;
 }): Promise<void> {
-  const targetPath = resolveChannelAllowFromPath(
-    _params.channel,
-    process.env,
-    _params.accountId,
-  );
+  const targetPath = resolveChannelAllowFromPath(_params.channel, process.env, _params.accountId);
   const entries = readAllowFromFile(targetPath);
   if (!entries.includes(_params.entry)) {
     entries.push(_params.entry);
@@ -78,11 +98,7 @@ export async function removeChannelAllowFromStoreEntry(_params: {
   entry: string;
   accountId?: string;
 }): Promise<void> {
-  const targetPath = resolveChannelAllowFromPath(
-    _params.channel,
-    process.env,
-    _params.accountId,
-  );
+  const targetPath = resolveChannelAllowFromPath(_params.channel, process.env, _params.accountId);
   const entries = readAllowFromFile(targetPath).filter((entry) => entry !== _params.entry);
   writeAllowFromFile(targetPath, entries);
 }
@@ -92,11 +108,10 @@ export function resolveChannelAllowFromPath(
   env: NodeJS.ProcessEnv = process.env,
   accountId?: string,
 ): string {
-  const base = resolveBaseDir(env);
-  const normalizedAccountId = accountId?.trim().toLowerCase();
-  if (channel === "telegram" && (!normalizedAccountId || normalizedAccountId === "default")) {
-    return path.join(base, "credentials", "telegram-allowFrom.json");
+  const credentialsDir = resolveCredentialsDir(env);
+  const normalizedAccountId = accountId?.trim();
+  if (!normalizedAccountId || normalizedAccountId.toLowerCase() === "default") {
+    return path.join(credentialsDir, `${channel}-allowFrom.json`);
   }
-  const suffix = accountId?.trim() ? `.${accountId.trim()}` : "";
-  return path.join(base, "pairing", `${channel}${suffix}.allow-from.json`);
+  return path.join(credentialsDir, `${channel}-${normalizedAccountId}-allowFrom.json`);
 }
