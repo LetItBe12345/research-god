@@ -1,15 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { inspectTelegramAccount } from "../../extensions/telegram/src/account-inspect.js";
-import {
-  listTelegramAccountIds,
-  resolveTelegramAccount,
-} from "../../extensions/telegram/src/accounts.js";
-import {
-  isNumericTelegramUserId,
-  normalizeTelegramAllowFromEntry,
-} from "../../extensions/telegram/src/allow-from.js";
-import { fetchTelegramChatId } from "../../extensions/telegram/src/api-fetch.js";
 import { normalizeChatChannelId } from "../channels/registry.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveCommandSecretRefsViaGateway } from "../cli/command-secret-gateway.js";
@@ -17,6 +7,7 @@ import { getChannelsCommandSecretTargetIds } from "../cli/command-secret-targets
 import { listRouteBindings } from "../config/bindings.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { CONFIG_PATH, migrateLegacyConfig, readConfigFileSnapshot } from "../config/config.js";
+import { coerceSecretRef, normalizeSecretInputString } from "../config/types.secrets.js";
 import { collectProviderDangerousNameMatchingScopes } from "../config/dangerous-name-matching.js";
 import { formatConfigIssueLines } from "../config/issue-format.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
@@ -71,6 +62,97 @@ type TelegramAllowFromListRef = {
   holder: Record<string, unknown>;
   key: "allowFrom" | "groupAllowFrom";
 };
+
+function inspectTelegramAccount(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): {
+  enabled: boolean;
+  tokenStatus: "configured_unavailable" | "missing";
+} {
+  const account = resolveTelegramAccount(params);
+  if (account.tokenSource === "config") {
+    return { enabled: true, tokenStatus: "missing" };
+  }
+  const telegram = asObjectRecord(params.cfg?.channels?.telegram);
+  const accounts = asObjectRecord(telegram?.accounts);
+  const normalizedAccountId = normalizeAccountId(params.accountId);
+  const accountConfig =
+    normalizedAccountId === DEFAULT_ACCOUNT_ID
+      ? telegram
+      : asObjectRecord(accounts?.[normalizedAccountId]);
+  const rawToken = accountConfig?.botToken ?? telegram?.botToken;
+  if (coerceSecretRef(rawToken)) {
+    return { enabled: true, tokenStatus: "configured_unavailable" };
+  }
+  return { enabled: false, tokenStatus: "missing" };
+}
+
+function listTelegramAccountIds(cfg: OpenClawConfig): string[] {
+  const telegram = asObjectRecord(cfg.channels?.telegram);
+  if (!telegram) {
+    return [];
+  }
+  const ids = new Set<string>();
+  if (telegram.botToken !== undefined) {
+    ids.add(DEFAULT_ACCOUNT_ID);
+  }
+  const accounts = asObjectRecord(telegram.accounts);
+  if (accounts) {
+    for (const key of Object.keys(accounts)) {
+      ids.add(normalizeAccountId(key));
+    }
+  }
+  return [...ids];
+}
+
+function resolveTelegramAccount(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): {
+  tokenSource: "config" | "none";
+  token: string;
+} {
+  const telegram = asObjectRecord(params.cfg?.channels?.telegram);
+  const accounts = asObjectRecord(telegram?.accounts);
+  const normalizedAccountId = normalizeAccountId(params.accountId);
+  const accountConfig =
+    normalizedAccountId === DEFAULT_ACCOUNT_ID
+      ? telegram
+      : asObjectRecord(accounts?.[normalizedAccountId]);
+  const token =
+    normalizeSecretInputString(accountConfig?.botToken) ??
+    normalizeSecretInputString(telegram?.botToken) ??
+    "";
+  return token ? { tokenSource: "config", token } : { tokenSource: "none", token: "" };
+}
+
+function normalizeTelegramAllowFromEntry(entry: unknown): string {
+  const trimmed = String(entry ?? "").trim();
+  return trimmed.replace(/^tg:/i, "").trim();
+}
+
+function isNumericTelegramUserId(value: string): boolean {
+  return /^-?\d+$/.test(value);
+}
+
+async function fetchTelegramChatId(params: {
+  token: string;
+  chatId: string;
+  signal?: AbortSignal;
+}): Promise<string | null> {
+  const url = new URL(`https://api.telegram.org/bot${params.token}/getChat`);
+  url.searchParams.set("chat_id", params.chatId);
+  const response = await fetch(url, { signal: params.signal });
+  if (!response.ok) {
+    return null;
+  }
+  const payload = (await response.json()) as { ok?: boolean; result?: { id?: string | number } };
+  if (!payload?.ok || payload.result?.id == null) {
+    return null;
+  }
+  return String(payload.result.id);
+}
 
 function asObjectRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

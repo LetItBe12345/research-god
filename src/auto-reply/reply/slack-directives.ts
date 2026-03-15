@@ -1,5 +1,3 @@
-import { parseSlackBlocksInput } from "../../../extensions/slack/src/blocks-input.js";
-import { truncateSlackText } from "../../../extensions/slack/src/truncate.js";
 import type { ReplyPayload } from "../types.js";
 
 const SLACK_REPLY_BUTTON_ACTION_ID = "openclaw:reply_button";
@@ -11,6 +9,17 @@ const SLACK_SECTION_TEXT_MAX = 3000;
 const SLACK_PLAIN_TEXT_MAX = 75;
 const SLACK_OPTION_VALUE_MAX = 75;
 const SLACK_DIRECTIVE_RE = /\[\[(slack_buttons|slack_select):\s*([^\]]+)\]\]/gi;
+
+function parseSlackBlocksInput(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function truncateSlackText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return value.slice(0, Math.max(0, maxLength - 1)).trimEnd();
+}
 
 type SlackBlock = Record<string, unknown>;
 type SlackChannelData = {

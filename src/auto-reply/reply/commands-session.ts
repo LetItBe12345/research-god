@@ -1,17 +1,3 @@
-import {
-  formatThreadBindingDurationLabel,
-  getThreadBindingManager,
-  resolveThreadBindingIdleTimeoutMs,
-  resolveThreadBindingInactivityExpiresAt,
-  resolveThreadBindingMaxAgeExpiresAt,
-  resolveThreadBindingMaxAgeMs,
-  setThreadBindingIdleTimeoutBySessionKey,
-  setThreadBindingMaxAgeBySessionKey,
-} from "../../../extensions/discord/src/monitor/thread-bindings.js";
-import {
-  setTelegramThreadBindingIdleTimeoutBySessionKey,
-  setTelegramThreadBindingMaxAgeBySessionKey,
-} from "../../../extensions/telegram/src/thread-bindings.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import { isRestartEnabled } from "../../config/commands.js";
@@ -29,6 +15,66 @@ import { handleAbortTrigger, handleStopCommand } from "./commands-session-abort.
 import { persistSessionEntry } from "./commands-session-store.js";
 import type { CommandHandler } from "./commands-types.js";
 import { resolveTelegramConversationId } from "./telegram-context.js";
+
+function formatThreadBindingDurationLabel(durationMs: number): string {
+  if (durationMs <= 0) {
+    return "off";
+  }
+  const hours = Math.round(durationMs / (60 * 60 * 1000));
+  return `${hours}h`;
+}
+
+function getThreadBindingManager(_accountId?: string | null): null {
+  return null;
+}
+
+function resolveThreadBindingIdleTimeoutMs(params: {
+  record: { idleTimeoutMs?: number };
+  defaultIdleTimeoutMs: number;
+}): number {
+  return params.record.idleTimeoutMs ?? params.defaultIdleTimeoutMs;
+}
+
+function resolveThreadBindingInactivityExpiresAt(params: {
+  record: { lastActivityAt?: number; boundAt?: number; idleTimeoutMs?: number };
+  defaultIdleTimeoutMs: number;
+}): number | undefined {
+  const base = params.record.lastActivityAt ?? params.record.boundAt;
+  const timeout = params.record.idleTimeoutMs ?? params.defaultIdleTimeoutMs;
+  return typeof base === "number" && timeout > 0 ? base + timeout : undefined;
+}
+
+function resolveThreadBindingMaxAgeMs(params: {
+  record: { maxAgeMs?: number };
+  defaultMaxAgeMs: number;
+}): number {
+  return params.record.maxAgeMs ?? params.defaultMaxAgeMs;
+}
+
+function resolveThreadBindingMaxAgeExpiresAt(params: {
+  record: { boundAt?: number; maxAgeMs?: number };
+  defaultMaxAgeMs: number;
+}): number | undefined {
+  const base = params.record.boundAt;
+  const timeout = params.record.maxAgeMs ?? params.defaultMaxAgeMs;
+  return typeof base === "number" && timeout > 0 ? base + timeout : undefined;
+}
+
+function setThreadBindingIdleTimeoutBySessionKey(): UpdatedLifecycleBinding[] {
+  return [];
+}
+
+function setThreadBindingMaxAgeBySessionKey(): UpdatedLifecycleBinding[] {
+  return [];
+}
+
+function setTelegramThreadBindingIdleTimeoutBySessionKey(): UpdatedLifecycleBinding[] {
+  return [];
+}
+
+function setTelegramThreadBindingMaxAgeBySessionKey(): UpdatedLifecycleBinding[] {
+  return [];
+}
 
 const SESSION_COMMAND_PREFIX = "/session";
 const SESSION_DURATION_OFF_VALUES = new Set(["off", "disable", "disabled", "none", "0"]);

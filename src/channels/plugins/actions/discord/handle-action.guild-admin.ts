@@ -1,1 +1,3 @@
-export * from "../../../../../extensions/discord/src/actions/handle-action.guild-admin.js";
+export async function handleDiscordGuildAdminAction() {
+  throw new Error("Discord guild admin actions are unavailable in this trimmed build.");
+}

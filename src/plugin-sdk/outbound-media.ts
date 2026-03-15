@@ -1,4 +1,4 @@
-import { loadWebMedia } from "../../extensions/whatsapp/src/media.js";
+import { loadWebMedia } from "../media/web-media.js";
 
 export type OutboundMediaLoadOptions = {
   maxBytes?: number;

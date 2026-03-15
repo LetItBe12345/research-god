@@ -1,4 +1,3 @@
-import { sendMessageIMessage } from "../../../../extensions/imessage/src/send.js";
 import {
   resolveOutboundSendDep,
   type OutboundSendDeps,
@@ -8,10 +7,32 @@ import {
   createDirectTextMediaOutbound,
 } from "./direct-text-media.js";
 
-function resolveIMessageSender(deps: OutboundSendDeps | undefined) {
-  return (
-    resolveOutboundSendDep<typeof sendMessageIMessage>(deps, "imessage") ?? sendMessageIMessage
-  );
+type IMessageSendResult = {
+  messageId: string;
+  chatId?: string;
+};
+
+type IMessageSendFn = (
+  to: string,
+  text: string,
+  opts: {
+    config: Parameters<NonNullable<ReturnType<typeof createDirectTextMediaOutbound>["sendText"]>>[0]["cfg"];
+    maxBytes?: number;
+    accountId?: string;
+    replyToId?: string;
+    mediaUrl?: string;
+    mediaLocalRoots?: readonly string[];
+  },
+) => Promise<IMessageSendResult>;
+
+function resolveIMessageSender(deps: OutboundSendDeps | undefined): IMessageSendFn {
+  const injected = resolveOutboundSendDep<IMessageSendFn>(deps, "imessage");
+  if (injected) {
+    return injected;
+  }
+  return async () => {
+    throw new Error("iMessage outbound is unavailable in this trimmed build.");
+  };
 }
 
 export const imessageOutbound = createDirectTextMediaOutbound({

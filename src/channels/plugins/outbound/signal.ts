@@ -1,4 +1,3 @@
-import { sendMessageSignal } from "../../../../extensions/signal/src/send.js";
 import {
   resolveOutboundSendDep,
   type OutboundSendDeps,
@@ -8,8 +7,32 @@ import {
   createDirectTextMediaOutbound,
 } from "./direct-text-media.js";
 
-function resolveSignalSender(deps: OutboundSendDeps | undefined) {
-  return resolveOutboundSendDep<typeof sendMessageSignal>(deps, "signal") ?? sendMessageSignal;
+type SignalSendResult = {
+  messageId: string;
+  timestamp?: number;
+  toJid?: string;
+};
+
+type SignalSendFn = (
+  to: string,
+  text: string,
+  opts: {
+    cfg: Parameters<NonNullable<ReturnType<typeof createDirectTextMediaOutbound>["sendText"]>>[0]["cfg"];
+    maxBytes?: number;
+    accountId?: string;
+    mediaUrl?: string;
+    mediaLocalRoots?: readonly string[];
+  },
+) => Promise<SignalSendResult>;
+
+function resolveSignalSender(deps: OutboundSendDeps | undefined): SignalSendFn {
+  const injected = resolveOutboundSendDep<SignalSendFn>(deps, "signal");
+  if (injected) {
+    return injected;
+  }
+  return async () => {
+    throw new Error("Signal outbound is unavailable in this trimmed build.");
+  };
 }
 
 export const signalOutbound = createDirectTextMediaOutbound({

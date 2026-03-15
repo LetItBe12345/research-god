@@ -1,4 +1,3 @@
-import { parseDiscordTarget } from "../../../../extensions/discord/src/targets.js";
 import { resolveStoredSubagentCapabilities } from "../../../agents/subagent-capabilities.js";
 import type { ResolvedSubagentController } from "../../../agents/subagent-control.js";
 import {
@@ -43,6 +42,24 @@ import {
   type SubagentTargetResolution,
 } from "../subagents-utils.js";
 import { resolveTelegramConversationId } from "../telegram-context.js";
+
+function parseDiscordTarget(target: string, options?: { defaultKind?: "channel" | "user" }) {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^discord:/i, "");
+  const match = /^(channel|user|dm):(.+)$/i.exec(normalized);
+  if (match) {
+    return {
+      kind: (match[1].toLowerCase() === "dm" ? "user" : match[1].toLowerCase()) as
+        | "channel"
+        | "user",
+      id: match[2].trim(),
+    };
+  }
+  return { kind: options?.defaultKind ?? "channel", id: normalized };
+}
 
 export { extractAssistantText, stripToolMessages };
 export {

@@ -1,4 +1,3 @@
-import { inspectSlackAccount } from "../../../extensions/slack/src/account-inspect.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import {
   resolveChannelGroupRequireMention,
@@ -13,6 +12,10 @@ import type {
 import { resolveExactLineGroupConfigKey } from "../../line/group-keys.js";
 import { normalizeAtHashSlug, normalizeHyphenSlug } from "../../shared/string-normalization.js";
 import type { ChannelGroupContext } from "./types.js";
+
+function inspectSlackAccount(): { channels?: Record<string, SlackChannelPolicyEntry> } {
+  return {};
+}
 
 type GroupMentionParams = ChannelGroupContext;
 
@@ -136,7 +139,7 @@ function resolveSlackChannelPolicyEntry(
     cfg: params.cfg,
     accountId: params.accountId,
   });
-  const channels = (account.channels ?? {}) as Record<string, SlackChannelPolicyEntry>;
+  const channels = (account.channels ?? {});
   if (Object.keys(channels).length === 0) {
     return undefined;
   }

@@ -8,7 +8,6 @@ import {
 import { createServer as createHttpsServer } from "node:https";
 import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
-import { handleSlackHttpRequest } from "../../extensions/slack/src/http/index.js";
 import { resolveAgentAvatar } from "../agents/identity-avatar.js";
 import { CANVAS_WS_PATH, handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import type { CanvasHostHandler } from "../canvas-host/server.js";
@@ -99,6 +98,10 @@ type HookReplayScope = {
   idempotencyKey?: string;
   dispatchScope: Record<string, unknown>;
 };
+
+async function handleSlackHttpRequest(): Promise<boolean> {
+  return false;
+}
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;

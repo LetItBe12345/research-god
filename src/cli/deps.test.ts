@@ -64,7 +64,7 @@ describe("createDefaultDeps", () => {
     vi.clearAllMocks();
   });
 
-  it("does not load provider modules until a dependency is used", async () => {
+  it("returns disabled senders without loading provider modules", async () => {
     const deps = createDefaultDeps();
 
     expect(moduleLoads.whatsapp).not.toHaveBeenCalled();
@@ -75,21 +75,24 @@ describe("createDefaultDeps", () => {
     expect(moduleLoads.imessage).not.toHaveBeenCalled();
 
     const sendTelegram = deps["telegram"] as (...args: unknown[]) => Promise<unknown>;
-    await sendTelegram("chat", "hello", { verbose: false });
+    await expect(sendTelegram("chat", "hello", { verbose: false })).rejects.toThrow(
+      /telegram send is unavailable/i,
+    );
 
-    expect(moduleLoads.telegram).toHaveBeenCalledTimes(1);
-    expect(sendFns.telegram).toHaveBeenCalledTimes(1);
     expectUnusedModulesNotLoaded("telegram");
   });
 
-  it("reuses module cache after first dynamic import", async () => {
+  it("keeps disabled senders deterministic across repeated calls", async () => {
     const deps = createDefaultDeps();
     const sendDiscord = deps["discord"] as (...args: unknown[]) => Promise<unknown>;
 
-    await sendDiscord("channel", "first", { verbose: false });
-    await sendDiscord("channel", "second", { verbose: false });
+    await expect(sendDiscord("channel", "first", { verbose: false })).rejects.toThrow(
+      /discord send is unavailable/i,
+    );
+    await expect(sendDiscord("channel", "second", { verbose: false })).rejects.toThrow(
+      /discord send is unavailable/i,
+    );
 
-    expect(moduleLoads.discord).toHaveBeenCalledTimes(1);
-    expect(sendFns.discord).toHaveBeenCalledTimes(2);
+    expect(moduleLoads.discord).not.toHaveBeenCalled();
   });
 });

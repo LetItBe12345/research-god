@@ -1,15 +1,8 @@
-import {
-  listEnabledSignalAccounts,
-  resolveSignalAccount,
-} from "../../../../extensions/signal/src/accounts.js";
-import { resolveSignalReactionLevel } from "../../../../extensions/signal/src/reaction-level.js";
-import {
-  sendReactionSignal,
-  removeReactionSignal,
-} from "../../../../extensions/signal/src/send-reactions.js";
 import { createActionGate, jsonResult, readStringParam } from "../../../agents/tools/common.js";
 import type { ChannelMessageActionAdapter, ChannelMessageActionName } from "../types.js";
 import { resolveReactionMessageId } from "./reaction-message-id.js";
+import type { OpenClawConfig } from "../../../config/config.js";
+import { normalizeAccountId } from "../../../routing/session-key.js";
 
 const providerId = "signal";
 const GROUP_PREFIX = "group:";
@@ -46,7 +39,7 @@ function resolveSignalReactionTarget(raw: string): { recipient?: string; groupId
 }
 
 async function mutateSignalReaction(params: {
-  cfg: Parameters<typeof resolveSignalAccount>[0]["cfg"];
+  cfg: OpenClawConfig;
   accountId?: string;
   target: { recipient?: string; groupId?: string };
   timestamp: number;
@@ -55,6 +48,14 @@ async function mutateSignalReaction(params: {
   targetAuthor?: string;
   targetAuthorUuid?: string;
 }) {
+  const reactionApi = await import("../../../../extensions/signal/src/send-reactions.js").catch(
+    () => null,
+  );
+  const sendReactionSignal = reactionApi?.sendReactionSignal;
+  const removeReactionSignal = reactionApi?.removeReactionSignal;
+  if (!sendReactionSignal || !removeReactionSignal) {
+    throw new Error("Signal reactions are unavailable in this trimmed build.");
+  }
   const options = {
     cfg: params.cfg,
     accountId: params.accountId,
@@ -77,7 +78,13 @@ async function mutateSignalReaction(params: {
 
 export const signalMessageActions: ChannelMessageActionAdapter = {
   listActions: ({ cfg }) => {
-    const accounts = listEnabledSignalAccounts(cfg);
+    const root = cfg.channels?.signal;
+    const accounts = Object.keys(root?.accounts ?? {}).map((accountId) =>
+      resolveSignalAccount({ cfg, accountId }),
+    );
+    if (accounts.length === 0) {
+      accounts.push(resolveSignalAccount({ cfg, accountId: "default" }));
+    }
     if (accounts.length === 0) {
       return [];
     }
@@ -190,3 +197,32 @@ export const signalMessageActions: ChannelMessageActionAdapter = {
     throw new Error(`Action ${action} not supported for ${providerId}.`);
   },
 };
+
+function resolveSignalAccount(params: { cfg: OpenClawConfig; accountId?: string }) {
+  const normalized = normalizeAccountId(params.accountId);
+  const root = params.cfg.channels?.signal;
+  const config =
+    (normalized ? root?.accounts?.[normalized] : undefined) ?? root?.accounts?.default ?? root ?? {};
+  return {
+    accountId: normalized || "default",
+    configured: Boolean((config as { account?: string }).account ?? root?.account),
+    config: config as {
+      allowFrom?: string[];
+      actions?: Record<string, unknown>;
+    },
+  };
+}
+
+function resolveSignalReactionLevel(params: { cfg: OpenClawConfig; accountId?: string }) {
+  const root = params.cfg.channels?.signal;
+  const normalized = normalizeAccountId(params.accountId);
+  const account = normalized ? root?.accounts?.[normalized] : undefined;
+  const level =
+    (account as { reactionLevel?: string } | undefined)?.reactionLevel ??
+    (root as { reactionLevel?: string } | undefined)?.reactionLevel ??
+    "minimal";
+  return {
+    level,
+    agentReactionsEnabled: level === "minimal" || level === "extensive",
+  };
+}

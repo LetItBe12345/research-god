@@ -1,9 +1,3 @@
-import { inspectDiscordAccount } from "../../extensions/discord/src/account-inspect.js";
-import { resolveSignalAccount } from "../../extensions/signal/src/accounts.js";
-import { inspectSlackAccount } from "../../extensions/slack/src/account-inspect.js";
-import { resolveSlackReplyToMode } from "../../extensions/slack/src/accounts.js";
-import { buildSlackThreadingToolContext } from "../../extensions/slack/src/threading-tool-context.js";
-import { inspectTelegramAccount } from "../../extensions/telegram/src/account-inspect.js";
 import {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,
@@ -61,6 +55,37 @@ import {
   resolveWhatsAppMentionStripPatterns,
 } from "./plugins/whatsapp-shared.js";
 import { CHAT_CHANNEL_ORDER, type ChatChannelId, getChatChannelMeta } from "./registry.js";
+
+function inspectDiscordAccount(): { config: Record<string, unknown> } {
+  return { config: {} };
+}
+
+function resolveSignalAccount(): { config: Record<string, unknown> } {
+  return { config: {} };
+}
+
+function inspectSlackAccount(): { config: Record<string, unknown> } {
+  return { config: {} };
+}
+
+function resolveSlackReplyToMode(): undefined {
+  return undefined;
+}
+
+function buildSlackThreadingToolContext(params: {
+  context: ChannelThreadingContext;
+  hasRepliedRef: ChannelThreadingToolContext["hasRepliedRef"];
+}): ChannelThreadingToolContext {
+  return {
+    currentChannelId: params.context.To?.trim() || undefined,
+    currentThreadTs: params.context.ReplyToId,
+    hasRepliedRef: params.hasRepliedRef,
+  };
+}
+
+function inspectTelegramAccount(): { config: Record<string, unknown> } {
+  return { config: {} };
+}
 
 export type ChannelDock = {
   id: ChannelId;

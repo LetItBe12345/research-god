@@ -1,5 +1,3 @@
-import { buildTelegramExecApprovalButtons } from "../../extensions/telegram/src/approval-buttons.js";
-import { sendTypingTelegram } from "../../extensions/telegram/src/send.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
@@ -53,6 +51,24 @@ export type ExecApprovalForwarderDeps = {
 };
 
 const DEFAULT_MODE = "session" as const;
+
+function buildTelegramExecApprovalButtons(approvalId: string) {
+  return [
+    [
+      { text: "Allow Once", callback_data: `/approve ${approvalId} allow-once` },
+      { text: "Allow Always", callback_data: `/approve ${approvalId} allow-always` },
+    ],
+    [{ text: "Deny", callback_data: `/approve ${approvalId} deny` }],
+  ];
+}
+
+async function sendTypingTelegram(_to: string, _params: {
+  cfg: OpenClawConfig;
+  accountId?: string;
+  messageThreadId?: number;
+}): Promise<void> {
+  // Trimmed build: keep the pre-delivery typing hint as a no-op.
+}
 
 function normalizeMode(mode?: ExecApprovalForwardingConfig["mode"]) {
   return mode ?? DEFAULT_MODE;

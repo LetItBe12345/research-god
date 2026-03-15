@@ -1,9 +1,3 @@
-import { parseDiscordTarget } from "../../../extensions/discord/src/targets.js";
-import { parseSlackTarget } from "../../../extensions/slack/src/targets.js";
-import {
-  parseTelegramTarget,
-  resolveTelegramTargetChatType,
-} from "../../../extensions/telegram/src/targets.js";
 import { normalizeChatType, type ChatType } from "../../channels/chat-type.js";
 import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.js";
 import { formatCliCommand } from "../../cli/command-format.js";
@@ -64,6 +58,79 @@ export type SessionDeliveryTarget = {
   lastAccountId?: string;
   lastThreadId?: string | number;
 };
+
+function parseDiscordTarget(target: string, options?: { defaultKind?: "channel" | "user" }) {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^discord:/i, "");
+  const match = /^(channel|user|dm):(.+)$/i.exec(normalized);
+  if (match) {
+    const rawKind = match[1].toLowerCase();
+    return {
+      kind: rawKind === "dm" ? "user" : (rawKind as "channel" | "user"),
+      id: match[2].trim(),
+    };
+  }
+  return {
+    kind: options?.defaultKind ?? "channel",
+    id: normalized,
+  };
+}
+
+function parseSlackTarget(target: string, options?: { defaultKind?: "channel" | "user" }) {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^slack:/i, "");
+  const match = /^(channel|user|dm):(.+)$/i.exec(normalized);
+  if (match) {
+    const rawKind = match[1].toLowerCase();
+    return {
+      kind: rawKind === "dm" ? "user" : (rawKind as "channel" | "user"),
+      id: match[2].trim(),
+    };
+  }
+  return {
+    kind: options?.defaultKind ?? "channel",
+    id: normalized,
+  };
+}
+
+function parseTelegramTarget(target: string): { chatId: string; messageThreadId?: number } {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return { chatId: "" };
+  }
+  const normalized = trimmed.replace(/^telegram:/i, "");
+  const parts = normalized
+    .split(":")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const topicIndex = parts.findIndex((part) => part.toLowerCase() === "topic");
+  if (topicIndex > 0) {
+    const threadValue = Number.parseInt(parts[topicIndex + 1] ?? "", 10);
+    return {
+      chatId: parts[topicIndex - 1] ?? "",
+      messageThreadId: Number.isFinite(threadValue) ? threadValue : undefined,
+    };
+  }
+  return { chatId: parts.at(-1) ?? normalized };
+}
+
+function resolveTelegramTargetChatType(target: string): ChatType | "unknown" {
+  const parsed = parseTelegramTarget(target);
+  const chatId = parsed.chatId.trim();
+  if (!chatId) {
+    return "unknown";
+  }
+  if (chatId.startsWith("-100") || chatId.startsWith("-")) {
+    return "group";
+  }
+  return "direct";
+}
 
 export function resolveSessionDeliveryTarget(params: {
   entry?: SessionEntry;

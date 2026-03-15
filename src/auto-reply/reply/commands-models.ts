@@ -1,10 +1,3 @@
-import {
-  buildModelsKeyboard,
-  buildProviderKeyboard,
-  calculateTotalPages,
-  getModelsPageSize,
-  type ProviderInfo,
-} from "../../../extensions/telegram/src/model-buttons.js";
 import { resolveAgentDir, resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveModelAuthLabel } from "../../agents/model-auth-label.js";
 import { loadModelCatalog } from "../../agents/model-catalog.js";
@@ -20,6 +13,34 @@ import type { SessionEntry } from "../../config/sessions.js";
 import type { ReplyPayload } from "../types.js";
 import { rejectUnauthorizedCommand } from "./command-gates.js";
 import type { CommandHandler } from "./commands-types.js";
+
+type ProviderInfo = {
+  id: string;
+  count: number;
+};
+
+function buildProviderKeyboard(_providers: ProviderInfo[]) {
+  return [];
+}
+
+function buildModelsKeyboard(_params: {
+  provider: string;
+  models: string[];
+  currentModel?: string;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+}) {
+  return [];
+}
+
+function calculateTotalPages(total: number, pageSize: number): number {
+  return pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+}
+
+function getModelsPageSize(): number {
+  return PAGE_SIZE_DEFAULT;
+}
 
 const PAGE_SIZE_DEFAULT = 20;
 const PAGE_SIZE_MAX = 100;

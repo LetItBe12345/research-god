@@ -7,8 +7,6 @@
  * across multiple providers.
  */
 
-import { parseSlackBlocksInput } from "../../../extensions/slack/src/blocks-input.js";
-import { isSlackInteractiveRepliesEnabled } from "../../../extensions/slack/src/interactive-replies.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveMessagesConfig } from "../../agents/identity.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
@@ -22,6 +20,17 @@ import {
   formatBtwTextForExternalDelivery,
   shouldSuppressReasoningPayload,
 } from "./reply-payloads.js";
+
+function parseSlackBlocksInput(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function isSlackInteractiveRepliesEnabled(_params: {
+  cfg: OpenClawConfig;
+  accountId?: string;
+}): boolean {
+  return false;
+}
 
 let deliverRuntimePromise: Promise<
   typeof import("../../infra/outbound/deliver-runtime.js")

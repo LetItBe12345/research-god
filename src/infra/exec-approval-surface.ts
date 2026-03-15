@@ -1,7 +1,3 @@
-import { listEnabledDiscordAccounts } from "../../extensions/discord/src/accounts.js";
-import { isDiscordExecApprovalClientEnabled } from "../../extensions/discord/src/exec-approvals.js";
-import { listEnabledTelegramAccounts } from "../../extensions/telegram/src/accounts.js";
-import { isTelegramExecApprovalClientEnabled } from "../../extensions/telegram/src/exec-approvals.js";
 import { loadConfig, type OpenClawConfig } from "../config/config.js";
 import { INTERNAL_MESSAGE_CHANNEL, normalizeMessageChannel } from "../utils/message-channel.js";
 
@@ -9,6 +5,44 @@ export type ExecApprovalInitiatingSurfaceState =
   | { kind: "enabled"; channel: string | undefined; channelLabel: string }
   | { kind: "disabled"; channel: string; channelLabel: string }
   | { kind: "unsupported"; channel: string; channelLabel: string };
+
+function listEnabledDiscordAccounts(_cfg: OpenClawConfig): Array<{
+  config: {
+    execApprovals?: {
+      enabled?: boolean;
+      approvers?: unknown[];
+      target?: string;
+    };
+  };
+}> {
+  return [];
+}
+
+function isDiscordExecApprovalClientEnabled(_params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): boolean {
+  return false;
+}
+
+function listEnabledTelegramAccounts(_cfg: OpenClawConfig): Array<{
+  config: {
+    execApprovals?: {
+      enabled?: boolean;
+      approvers?: unknown[];
+      target?: string;
+    };
+  };
+}> {
+  return [];
+}
+
+function isTelegramExecApprovalClientEnabled(_params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): boolean {
+  return false;
+}
 
 function labelForChannel(channel?: string): string {
   switch (channel) {

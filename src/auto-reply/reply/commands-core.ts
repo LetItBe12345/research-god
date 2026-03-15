@@ -8,8 +8,6 @@ import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { shouldHandleTextCommands } from "../commands-registry.js";
 import { handleAcpCommand } from "./commands-acp.js";
 import { resolveBoundAcpThreadSessionKey } from "./commands-acp/targets.js";
-import { handleAllowlistCommand } from "./commands-allowlist.js";
-import { handleApproveCommand } from "./commands-approve.js";
 import { handleBashCommand } from "./commands-bash.js";
 import { handleBtwCommand } from "./commands-btw.js";
 import { handleCompactCommand } from "./commands-compact.js";
@@ -24,18 +22,8 @@ import {
 } from "./commands-info.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handlePluginCommand } from "./commands-plugin.js";
-import {
-  handleAbortTrigger,
-  handleActivationCommand,
-  handleFastCommand,
-  handleRestartCommand,
-  handleSessionCommand,
-  handleSendPolicyCommand,
-  handleStopCommand,
-  handleUsageCommand,
-} from "./commands-session.js";
+import { handleAbortTrigger, handleFastCommand, handleStopCommand, handleUsageCommand } from "./commands-session.js";
 import { handleSubagentsCommand } from "./commands-subagents.js";
-import { handleTtsCommands } from "./commands-tts.js";
 import type {
   CommandHandler,
   CommandHandlerResult,
@@ -177,18 +165,11 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       handlePluginCommand,
       handleBtwCommand,
       handleBashCommand,
-      handleActivationCommand,
-      handleSendPolicyCommand,
       handleFastCommand,
       handleUsageCommand,
-      handleSessionCommand,
-      handleRestartCommand,
-      handleTtsCommands,
       handleHelpCommand,
       handleCommandsListCommand,
       handleStatusCommand,
-      handleAllowlistCommand,
-      handleApproveCommand,
       handleContextCommand,
       handleExportSessionCommand,
       handleWhoamiCommand,

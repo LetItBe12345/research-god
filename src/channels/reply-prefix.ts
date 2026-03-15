@@ -1,4 +1,3 @@
-import { isSlackInteractiveRepliesEnabled } from "../../extensions/slack/src/interactive-replies.js";
 import { resolveEffectiveMessagesConfig, resolveIdentityName } from "../agents/identity.js";
 import {
   extractShortModelName,
@@ -6,6 +5,10 @@ import {
 } from "../auto-reply/reply/response-prefix-template.js";
 import type { GetReplyOptions } from "../auto-reply/types.js";
 import type { OpenClawConfig } from "../config/config.js";
+
+function isSlackInteractiveRepliesEnabled(): boolean {
+  return false;
+}
 
 type ModelSelectionContext = Parameters<NonNullable<GetReplyOptions["onModelSelected"]>>[0];
 

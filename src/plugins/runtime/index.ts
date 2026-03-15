@@ -5,7 +5,6 @@ import {
 } from "../../agents/model-auth.js";
 import { resolveStateDir } from "../../config/paths.js";
 import { transcribeAudioFile } from "../../media-understanding/transcribe-audio.js";
-import { textToSpeechTelephony } from "../../tts/tts.js";
 import { createRuntimeChannel } from "./runtime-channel.js";
 import { createRuntimeConfig } from "./runtime-config.js";
 import { createRuntimeEvents } from "./runtime-events.js";
@@ -43,6 +42,10 @@ function createUnavailableSubagentRuntime(): PluginRuntime["subagent"] {
     getSession: unavailable,
     deleteSession: unavailable,
   };
+}
+
+async function textToSpeechTelephony(): Promise<never> {
+  throw new Error("TTS is unavailable in this trimmed build.");
 }
 
 export type CreatePluginRuntimeOptions = {

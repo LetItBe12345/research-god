@@ -1,2 +1,5 @@
-// Shim: re-exports from extension
-export * from "../../../../extensions/discord/src/status-issues.js";
+import type { ChannelStatusIssue } from "../types.js";
+
+export function collectDiscordStatusIssues(): ChannelStatusIssue[] {
+  return [];
+}

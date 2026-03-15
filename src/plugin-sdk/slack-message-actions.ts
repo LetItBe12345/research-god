@@ -1,5 +1,4 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { parseSlackBlocksInput } from "../../extensions/slack/src/blocks-input.js";
 import { readNumberParam, readStringParam } from "../agents/tools/common.js";
 import type { ChannelMessageActionContext } from "../channels/plugins/types.js";
 
@@ -10,7 +9,25 @@ type SlackActionInvoke = (
 ) => Promise<AgentToolResult<unknown>>;
 
 function readSlackBlocksParam(actionParams: Record<string, unknown>) {
-  return parseSlackBlocksInput(actionParams.blocks) as Record<string, unknown>[] | undefined;
+  if (Array.isArray(actionParams.blocks)) {
+    if (actionParams.blocks.length === 0) {
+      throw new Error("blocks must contain at least one block");
+    }
+    return actionParams.blocks as Record<string, unknown>[];
+  }
+  if (typeof actionParams.blocks === "string") {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(actionParams.blocks);
+    } catch {
+      throw new Error("blocks must be valid JSON");
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("blocks must contain at least one block");
+    }
+    return parsed as Record<string, unknown>[];
+  }
+  return undefined;
 }
 
 export async function handleSlackMessageAction(params: {

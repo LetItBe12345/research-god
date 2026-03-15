@@ -1,13 +1,31 @@
-import { inspectDiscordAccount } from "../../../extensions/discord/src/account-inspect.js";
-import { inspectSlackAccount } from "../../../extensions/slack/src/account-inspect.js";
-import { inspectTelegramAccount } from "../../../extensions/telegram/src/account-inspect.js";
-import { resolveWhatsAppAccount } from "../../../extensions/whatsapp/src/accounts.js";
 import type { OpenClawConfig } from "../../config/types.js";
 import { mapAllowFromEntries } from "../../plugin-sdk/channel-config-helpers.js";
 import { isWhatsAppGroupJid, normalizeWhatsAppTarget } from "../../whatsapp/normalize.js";
 import { applyDirectoryQueryAndLimit, toDirectoryEntries } from "./directory-config-helpers.js";
 import { normalizeSlackMessagingTarget } from "./normalize/slack.js";
 import type { ChannelDirectoryEntry } from "./types.js";
+
+function inspectDiscordAccount(): {
+  config: { allowFrom?: unknown[]; dm?: { allowFrom?: unknown[] }; dms?: Record<string, unknown>; guilds?: Record<string, { users?: unknown[]; channels?: Record<string, { users?: unknown[] }> }> };
+} {
+  return { config: {} };
+}
+
+function inspectSlackAccount(): {
+  config: { allowFrom?: unknown[]; dm?: { allowFrom?: unknown[] }; dms?: Record<string, unknown>; channels?: Record<string, { users?: unknown[] }> };
+} {
+  return { config: {} };
+}
+
+function inspectTelegramAccount(): {
+  config: { allowFrom?: Array<string | number>; dms?: Record<string, unknown>; groups?: Record<string, unknown> };
+} {
+  return { config: {} };
+}
+
+function resolveWhatsAppAccount(): { allowFrom?: string[]; groups?: Record<string, unknown> } {
+  return {};
+}
 
 export type DirectoryConfigParams = {
   cfg: OpenClawConfig;

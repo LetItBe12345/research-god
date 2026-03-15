@@ -1,1 +1,2 @@
-export * from "./index.js";
+export * from "./core.js";
+export { resolveControlCommandGate } from "../channels/command-gating.js";
