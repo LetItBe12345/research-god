@@ -1,12 +1,12 @@
-import { resolveTelegramAccount } from "../../../extensions/telegram/src/accounts.js";
-import { deleteTelegramUpdateOffset } from "../../../extensions/telegram/src/update-offset-store.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { deleteTelegramUpdateOffset } from "../../channels/plugins/telegram-update-offset-store.js";
 import { listChannelPluginCatalogEntries } from "../../channels/plugins/catalog.js";
 import { parseOptionalDelimitedEntries } from "../../channels/plugins/helpers.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { moveSingleAccountChannelSectionToDefaultAccount } from "../../channels/plugins/setup-helpers.js";
 import type { ChannelId, ChannelSetupInput } from "../../channels/plugins/types.js";
 import { writeConfigFile, type OpenClawConfig } from "../../config/config.js";
+import { resolveTelegramAccount } from "../../plugin-sdk/telegram.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
@@ -271,7 +271,7 @@ export async function channelsAddCommand(
 
   const previousTelegramToken =
     channel === "telegram"
-      ? resolveTelegramAccount({ cfg: nextConfig, accountId }).token.trim()
+      ? resolveTelegramAccount(nextConfig, accountId).token?.trim() ?? ""
       : "";
 
   if (accountId !== DEFAULT_ACCOUNT_ID) {
@@ -289,7 +289,7 @@ export async function channelsAddCommand(
   });
 
   if (channel === "telegram") {
-    const nextTelegramToken = resolveTelegramAccount({ cfg: nextConfig, accountId }).token.trim();
+    const nextTelegramToken = resolveTelegramAccount(nextConfig, accountId).token?.trim() ?? "";
     if (previousTelegramToken !== nextTelegramToken) {
       // Clear stale polling offsets after Telegram token rotation.
       await deleteTelegramUpdateOffset({ accountId });

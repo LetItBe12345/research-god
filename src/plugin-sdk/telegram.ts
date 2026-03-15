@@ -7,14 +7,25 @@ export type { ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type { OpenClawConfig } from "../config/config.js";
 export type { PluginRuntime } from "../plugins/runtime/types.js";
 export type { OpenClawPluginApi } from "../plugins/types.js";
-export type { InspectedTelegramAccount } from "../../extensions/telegram/src/account-inspect.js";
-export type { ResolvedTelegramAccount } from "../../extensions/telegram/src/accounts.js";
-export type { TelegramProbe } from "../../extensions/telegram/src/probe.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { normalizeAccountId } from "../routing/session-key.js";
+
+function resolveTelegramRoot(cfg: OpenClawConfig) {
+  return cfg.channels?.telegram ?? {};
+}
+
+export type ResolvedTelegramAccount = {
+  accountId: string;
+  config: Record<string, unknown>;
+  token?: string;
+  configured: boolean;
+};
+
+export type InspectedTelegramAccount = ResolvedTelegramAccount;
+export type TelegramProbe = Record<string, unknown>;
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
-
 export { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
-
 export {
   applyAccountNameToChannelSection,
   migrateBaseNameToDefaultAccount,
@@ -27,15 +38,36 @@ export {
 } from "../channels/plugins/config-helpers.js";
 export { formatPairingApproveHint } from "../channels/plugins/helpers.js";
 export { PAIRING_APPROVED_MESSAGE } from "../channels/plugins/pairing-message.js";
-
 export { getChatChannelMeta } from "../channels/registry.js";
 
-export {
-  listTelegramAccountIds,
-  resolveDefaultTelegramAccountId,
-  resolveTelegramAccount,
-} from "../../extensions/telegram/src/accounts.js";
-export { inspectTelegramAccount } from "../../extensions/telegram/src/account-inspect.js";
+export function listTelegramAccountIds(cfg: OpenClawConfig): string[] {
+  const accounts = Object.keys(resolveTelegramRoot(cfg).accounts ?? {});
+  return accounts.length > 0 ? accounts : ["default"];
+}
+
+export function resolveDefaultTelegramAccountId(_cfg: OpenClawConfig): string {
+  return "default";
+}
+
+export function resolveTelegramAccount(cfg: OpenClawConfig, accountId?: string | null): ResolvedTelegramAccount {
+  const normalized = normalizeAccountId(accountId);
+  const root = resolveTelegramRoot(cfg);
+  const config = (normalized ? root.accounts?.[normalized] : undefined) ?? root.accounts?.default ?? root;
+  const token =
+    (typeof config?.botToken === "string" && config.botToken) ||
+    (typeof root.botToken === "string" ? root.botToken : undefined);
+  return {
+    accountId: normalized || "default",
+    config: config ?? {},
+    token,
+    configured: Boolean(token),
+  };
+}
+
+export function inspectTelegramAccount(cfg: OpenClawConfig, accountId?: string | null): InspectedTelegramAccount {
+  return resolveTelegramAccount(cfg, accountId);
+}
+
 export {
   projectCredentialSnapshotFields,
   resolveConfiguredFromCredentialStatuses,
@@ -50,11 +82,17 @@ export {
 } from "../channels/plugins/normalize/telegram.js";
 export {
   parseTelegramReplyToMessageId,
-  parseTelegramThreadId,
-} from "../../extensions/telegram/src/outbound-params.js";
+} from "../channels/plugins/outbound/telegram.js";
+export function parseTelegramThreadId(value?: string | number | null): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {return value;}
+  if (typeof value === "string") {
+    const parsed = Number.parseInt(value.trim(), 10);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
 export { collectTelegramStatusIssues } from "../channels/plugins/status-issues/telegram.js";
 export { sendTelegramPayloadMessages } from "../channels/plugins/outbound/telegram.js";
-
 export {
   resolveAllowlistProviderRuntimeGroupPolicy,
   resolveDefaultGroupPolicy,
@@ -65,5 +103,4 @@ export {
 } from "../channels/plugins/group-mentions.js";
 export { telegramOnboardingAdapter } from "../channels/plugins/onboarding/telegram.js";
 export { TelegramConfigSchema } from "../config/zod-schema.providers-core.js";
-
 export { buildTokenChannelStatusSummary } from "./status-helpers.js";

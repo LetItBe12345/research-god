@@ -1,5 +1,3 @@
-import { resolveIMessageAccount } from "../../extensions/imessage/src/accounts.js";
-import { resolveWhatsAppAccount } from "../../extensions/whatsapp/src/accounts.js";
 import {
   deleteAccountFromConfigSection,
   setAccountEnabledInConfigSection,
@@ -10,6 +8,33 @@ import type { ChannelConfigAdapter } from "../channels/plugins/types.adapters.js
 import type { OpenClawConfig } from "../config/config.js";
 import { normalizeAccountId } from "../routing/session-key.js";
 import { normalizeStringEntries } from "../shared/string-normalization.js";
+
+function resolveIMessageAccount(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): { config: { allowFrom?: Array<string | number>; defaultTo?: string } } {
+  const normalized = normalizeAccountId(params.accountId);
+  const root = params.cfg.channels?.imessage;
+  const account = normalized ? root?.accounts?.[normalized] : undefined;
+  return {
+    config: {
+      allowFrom: account?.allowFrom ?? root?.allowFrom ?? [],
+      defaultTo: account?.defaultTo ?? root?.defaultTo,
+    },
+  };
+}
+
+function resolveWhatsAppAccount(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): { allowFrom?: string[] } {
+  const normalized = normalizeAccountId(params.accountId);
+  const root = params.cfg.channels?.whatsapp;
+  const account = normalized ? root?.accounts?.[normalized] : undefined;
+  return {
+    allowFrom: (account?.allowFrom ?? root?.allowFrom ?? []).map((entry) => String(entry)),
+  };
+}
 
 export function mapAllowFromEntries(
   allowFrom: Array<string | number> | null | undefined,

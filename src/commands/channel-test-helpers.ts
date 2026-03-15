@@ -1,11 +1,7 @@
-import { discordPlugin } from "../../extensions/discord/src/channel.js";
-import { imessagePlugin } from "../../extensions/imessage/src/channel.js";
-import { signalPlugin } from "../../extensions/signal/src/channel.js";
-import { slackPlugin } from "../../extensions/slack/src/channel.js";
-import { telegramPlugin } from "../../extensions/telegram/src/channel.js";
-import { whatsappPlugin } from "../../extensions/whatsapp/src/channel.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
-import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import { createTestRegistry, createChannelTestPluginBase } from "../test-utils/channel-plugins.js";
+import type { OpenClawConfig } from "../config/config.js";
+import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { ChannelChoice } from "./onboard-types.js";
 import { getChannelOnboardingAdapter } from "./onboarding/registry.js";
 import type { ChannelOnboardingAdapter } from "./onboarding/types.js";
@@ -24,15 +20,159 @@ type PatchedOnboardingAdapterFields = {
   getStatus?: ChannelOnboardingAdapter["getStatus"];
 };
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function cloneConfig(cfg: OpenClawConfig): OpenClawConfig {
+  return structuredClone(cfg);
+}
+
+function ensureChannelSection(
+  cfg: OpenClawConfig,
+  channel: ChannelChoice,
+): Record<string, unknown> {
+  const channels = (cfg.channels ??= {});
+  const existing = asRecord(channels[channel]);
+  if (existing) {
+    return existing;
+  }
+  const created: Record<string, unknown> = {};
+  channels[channel] = created as never;
+  return created;
+}
+
+function resolveAccountContainer(
+  channelConfig: Record<string, unknown>,
+  accountId: string,
+): Record<string, unknown> {
+  if (accountId === "default" && !asRecord(channelConfig.accounts)) {
+    return channelConfig;
+  }
+  const accounts = asRecord(channelConfig.accounts) ?? {};
+  channelConfig.accounts = accounts;
+  const existing = asRecord(accounts[accountId]);
+  if (existing) {
+    return existing;
+  }
+  const created: Record<string, unknown> = {};
+  accounts[accountId] = created;
+  return created;
+}
+
+function listAccountIdsFromConfig(cfg: OpenClawConfig, channel: ChannelChoice): string[] {
+  const channelConfig = asRecord(cfg.channels?.[channel]);
+  if (!channelConfig) {
+    return [];
+  }
+  const ids = new Set<string>();
+  const accounts = asRecord(channelConfig.accounts);
+  if (accounts) {
+    for (const id of Object.keys(accounts)) {
+      ids.add(id);
+    }
+  }
+  if (Object.keys(channelConfig).some((key) => key !== "accounts")) {
+    ids.add("default");
+  }
+  return [...ids];
+}
+
+function setFieldIfPresent(
+  target: Record<string, unknown>,
+  input: Record<string, unknown>,
+  sourceKey: string,
+  targetKey = sourceKey,
+) {
+  const value = input[sourceKey];
+  if (value !== undefined) {
+    target[targetKey] = value;
+  }
+}
+
+function createTestChannelPlugin(channel: ChannelChoice): ChannelPlugin {
+  const base = createChannelTestPluginBase({ id: channel, label: channel });
+  return {
+    ...base,
+    config: {
+      listAccountIds: (cfg) => listAccountIdsFromConfig(cfg, channel),
+      resolveAccount: (cfg, accountId) => {
+        const channelConfig = asRecord(cfg.channels?.[channel]) ?? {};
+        const accounts = asRecord(channelConfig.accounts);
+        return (accounts?.[accountId ?? "default"] as Record<string, unknown> | undefined) ?? channelConfig;
+      },
+      setAccountEnabled: ({ cfg, accountId, enabled }) => {
+        const next = cloneConfig(cfg);
+        const channelConfig = ensureChannelSection(next, channel);
+        const target = resolveAccountContainer(channelConfig, accountId);
+        target.enabled = enabled;
+        return next;
+      },
+      deleteAccount: ({ cfg, accountId }) => {
+        const next = cloneConfig(cfg);
+        const channelConfig = asRecord(next.channels?.[channel]);
+        if (!channelConfig) {
+          return next;
+        }
+        if (accountId === "default" && !asRecord(channelConfig.accounts)) {
+          delete next.channels?.[channel];
+          return next;
+        }
+        const accounts = asRecord(channelConfig.accounts);
+        if (accounts) {
+          delete accounts[accountId];
+          if (Object.keys(accounts).length === 0) {
+            delete channelConfig.accounts;
+          }
+        }
+        return next;
+      },
+    },
+    setup: {
+      applyAccountConfig: ({ cfg, accountId, input }) => {
+        const next = cloneConfig(cfg);
+        const channelConfig = ensureChannelSection(next, channel);
+        channelConfig.enabled = true;
+        const target = resolveAccountContainer(channelConfig, accountId);
+        const rawInput = input as Record<string, unknown>;
+        setFieldIfPresent(target, rawInput, "name");
+        if (channel === "telegram") {
+          setFieldIfPresent(target, rawInput, "token", "botToken");
+        }
+        if (channel === "discord") {
+          setFieldIfPresent(target, rawInput, "token");
+        }
+        if (channel === "slack") {
+          setFieldIfPresent(target, rawInput, "botToken");
+          setFieldIfPresent(target, rawInput, "appToken");
+        }
+        if (channel === "signal") {
+          setFieldIfPresent(target, rawInput, "signalNumber", "account");
+        }
+        if (accountId === "default" && asRecord(channelConfig.accounts)) {
+          delete channelConfig.name;
+        }
+        return next;
+      },
+    },
+  } as ChannelPlugin;
+}
+
 export function setDefaultChannelPluginRegistryForTests(): void {
-  const channels = [
-    { pluginId: "discord", plugin: discordPlugin, source: "test" },
-    { pluginId: "slack", plugin: slackPlugin, source: "test" },
-    { pluginId: "telegram", plugin: telegramPlugin, source: "test" },
-    { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
-    { pluginId: "signal", plugin: signalPlugin, source: "test" },
-    { pluginId: "imessage", plugin: imessagePlugin, source: "test" },
-  ] as unknown as Parameters<typeof createTestRegistry>[0];
+  const channels = ([
+    "discord",
+    "slack",
+    "telegram",
+    "whatsapp",
+    "signal",
+    "imessage",
+  ] as const).map((id) => ({
+    pluginId: id,
+    plugin: createTestChannelPlugin(id),
+    source: "test",
+  }));
   setActivePluginRegistry(createTestRegistry(channels));
 }
 

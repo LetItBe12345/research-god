@@ -1,17 +1,19 @@
-type ReadChannelAllowFromStore =
-  typeof import("../../pairing/pairing-store.js").readChannelAllowFromStore;
-type UpsertChannelPairingRequest =
-  typeof import("../../pairing/pairing-store.js").upsertChannelPairingRequest;
-
 type ReadChannelAllowFromStoreForAccount = (params: {
-  channel: Parameters<ReadChannelAllowFromStore>[0];
+  channel: string;
   accountId: string;
-  env?: Parameters<ReadChannelAllowFromStore>[1];
-}) => ReturnType<ReadChannelAllowFromStore>;
+  env?: NodeJS.ProcessEnv;
+}) => Promise<unknown>;
 
 type UpsertChannelPairingRequestForAccount = (
-  params: Omit<Parameters<UpsertChannelPairingRequest>[0], "accountId"> & { accountId: string },
-) => ReturnType<UpsertChannelPairingRequest>;
+  params: {
+    channel: string;
+    id: string;
+    accountId: string;
+    meta?: Record<string, unknown>;
+    env?: NodeJS.ProcessEnv;
+    pairingAdapter?: unknown;
+  },
+) => Promise<unknown>;
 
 export type PluginRuntimeChannel = {
   text: {
@@ -44,7 +46,7 @@ export type PluginRuntimeChannel = {
     resolveAgentRoute: typeof import("../../routing/resolve-route.js").resolveAgentRoute;
   };
   pairing: {
-    buildPairingReply: typeof import("../../pairing/pairing-messages.js").buildPairingReply;
+    buildPairingReply: (...args: unknown[]) => unknown;
     readAllowFromStore: ReadChannelAllowFromStoreForAccount;
     upsertPairingRequest: UpsertChannelPairingRequestForAccount;
   };
@@ -88,78 +90,78 @@ export type PluginRuntimeChannel = {
   };
   discord: {
     messageActions: typeof import("../../channels/plugins/actions/discord.js").discordMessageActions;
-    auditChannelPermissions: typeof import("../../../extensions/discord/src/audit.js").auditDiscordChannelPermissions;
-    listDirectoryGroupsLive: typeof import("../../../extensions/discord/src/directory-live.js").listDiscordDirectoryGroupsLive;
-    listDirectoryPeersLive: typeof import("../../../extensions/discord/src/directory-live.js").listDiscordDirectoryPeersLive;
-    probeDiscord: typeof import("../../../extensions/discord/src/probe.js").probeDiscord;
-    resolveChannelAllowlist: typeof import("../../../extensions/discord/src/resolve-channels.js").resolveDiscordChannelAllowlist;
-    resolveUserAllowlist: typeof import("../../../extensions/discord/src/resolve-users.js").resolveDiscordUserAllowlist;
-    sendMessageDiscord: typeof import("../../../extensions/discord/src/send.js").sendMessageDiscord;
-    sendPollDiscord: typeof import("../../../extensions/discord/src/send.js").sendPollDiscord;
-    monitorDiscordProvider: typeof import("../../../extensions/discord/src/monitor.js").monitorDiscordProvider;
+    auditChannelPermissions: (...args: unknown[]) => Promise<unknown>;
+    listDirectoryGroupsLive: (...args: unknown[]) => Promise<unknown>;
+    listDirectoryPeersLive: (...args: unknown[]) => Promise<unknown>;
+    probeDiscord: (...args: unknown[]) => Promise<unknown>;
+    resolveChannelAllowlist: (...args: unknown[]) => Promise<unknown>;
+    resolveUserAllowlist: (...args: unknown[]) => Promise<unknown>;
+    sendMessageDiscord: (...args: unknown[]) => Promise<unknown>;
+    sendPollDiscord: (...args: unknown[]) => Promise<unknown>;
+    monitorDiscordProvider: (...args: unknown[]) => Promise<unknown>;
   };
   slack: {
-    listDirectoryGroupsLive: typeof import("../../../extensions/slack/src/directory-live.js").listSlackDirectoryGroupsLive;
-    listDirectoryPeersLive: typeof import("../../../extensions/slack/src/directory-live.js").listSlackDirectoryPeersLive;
-    probeSlack: typeof import("../../../extensions/slack/src/probe.js").probeSlack;
-    resolveChannelAllowlist: typeof import("../../../extensions/slack/src/resolve-channels.js").resolveSlackChannelAllowlist;
-    resolveUserAllowlist: typeof import("../../../extensions/slack/src/resolve-users.js").resolveSlackUserAllowlist;
-    sendMessageSlack: typeof import("../../../extensions/slack/src/send.js").sendMessageSlack;
-    monitorSlackProvider: typeof import("../../../extensions/slack/src/index.js").monitorSlackProvider;
+    listDirectoryGroupsLive: (...args: unknown[]) => Promise<unknown>;
+    listDirectoryPeersLive: (...args: unknown[]) => Promise<unknown>;
+    probeSlack: (...args: unknown[]) => Promise<unknown>;
+    resolveChannelAllowlist: (...args: unknown[]) => Promise<unknown>;
+    resolveUserAllowlist: (...args: unknown[]) => Promise<unknown>;
+    sendMessageSlack: (...args: unknown[]) => Promise<unknown>;
+    monitorSlackProvider: (...args: unknown[]) => Promise<unknown>;
     handleSlackAction: typeof import("../../agents/tools/slack-actions.js").handleSlackAction;
   };
   telegram: {
-    auditGroupMembership: typeof import("../../../extensions/telegram/src/audit.js").auditTelegramGroupMembership;
-    collectUnmentionedGroupIds: typeof import("../../../extensions/telegram/src/audit.js").collectTelegramUnmentionedGroupIds;
-    probeTelegram: typeof import("../../../extensions/telegram/src/probe.js").probeTelegram;
-    resolveTelegramToken: typeof import("../../../extensions/telegram/src/token.js").resolveTelegramToken;
-    sendMessageTelegram: typeof import("../../../extensions/telegram/src/send.js").sendMessageTelegram;
-    sendPollTelegram: typeof import("../../../extensions/telegram/src/send.js").sendPollTelegram;
-    monitorTelegramProvider: typeof import("../../../extensions/telegram/src/monitor.js").monitorTelegramProvider;
+    auditGroupMembership: (...args: unknown[]) => Promise<unknown>;
+    collectUnmentionedGroupIds: (...args: unknown[]) => Promise<unknown>;
+    probeTelegram: (...args: unknown[]) => Promise<unknown>;
+    resolveTelegramToken: (...args: unknown[]) => Promise<unknown>;
+    sendMessageTelegram: (...args: unknown[]) => Promise<unknown>;
+    sendPollTelegram: (...args: unknown[]) => Promise<unknown>;
+    monitorTelegramProvider: (...args: unknown[]) => Promise<unknown>;
     messageActions: typeof import("../../channels/plugins/actions/telegram.js").telegramMessageActions;
   };
   signal: {
-    probeSignal: typeof import("../../../extensions/signal/src/probe.js").probeSignal;
-    sendMessageSignal: typeof import("../../../extensions/signal/src/send.js").sendMessageSignal;
-    monitorSignalProvider: typeof import("../../../extensions/signal/src/index.js").monitorSignalProvider;
+    probeSignal: (...args: unknown[]) => Promise<unknown>;
+    sendMessageSignal: (...args: unknown[]) => Promise<unknown>;
+    monitorSignalProvider: (...args: unknown[]) => Promise<unknown>;
     messageActions: typeof import("../../channels/plugins/actions/signal.js").signalMessageActions;
   };
   imessage: {
-    monitorIMessageProvider: typeof import("../../../extensions/imessage/src/monitor.js").monitorIMessageProvider;
-    probeIMessage: typeof import("../../../extensions/imessage/src/probe.js").probeIMessage;
-    sendMessageIMessage: typeof import("../../../extensions/imessage/src/send.js").sendMessageIMessage;
+    monitorIMessageProvider: (...args: unknown[]) => Promise<unknown>;
+    probeIMessage: (...args: unknown[]) => Promise<unknown>;
+    sendMessageIMessage: (...args: unknown[]) => Promise<unknown>;
   };
   whatsapp: {
-    getActiveWebListener: typeof import("../../../extensions/whatsapp/src/active-listener.js").getActiveWebListener;
-    getWebAuthAgeMs: typeof import("../../../extensions/whatsapp/src/auth-store.js").getWebAuthAgeMs;
-    logoutWeb: typeof import("../../../extensions/whatsapp/src/auth-store.js").logoutWeb;
-    logWebSelfId: typeof import("../../../extensions/whatsapp/src/auth-store.js").logWebSelfId;
-    readWebSelfId: typeof import("../../../extensions/whatsapp/src/auth-store.js").readWebSelfId;
-    webAuthExists: typeof import("../../../extensions/whatsapp/src/auth-store.js").webAuthExists;
-    sendMessageWhatsApp: typeof import("../../../extensions/whatsapp/src/send.js").sendMessageWhatsApp;
-    sendPollWhatsApp: typeof import("../../../extensions/whatsapp/src/send.js").sendPollWhatsApp;
-    loginWeb: typeof import("../../../extensions/whatsapp/src/login.js").loginWeb;
-    startWebLoginWithQr: typeof import("../../../extensions/whatsapp/src/login-qr.js").startWebLoginWithQr;
-    waitForWebLogin: typeof import("../../../extensions/whatsapp/src/login-qr.js").waitForWebLogin;
+    getActiveWebListener: (...args: unknown[]) => unknown;
+    getWebAuthAgeMs: (...args: unknown[]) => unknown;
+    logoutWeb: (...args: unknown[]) => Promise<unknown>;
+    logWebSelfId: (...args: unknown[]) => Promise<unknown>;
+    readWebSelfId: (...args: unknown[]) => unknown;
+    webAuthExists: (...args: unknown[]) => boolean;
+    sendMessageWhatsApp: (...args: unknown[]) => Promise<unknown>;
+    sendPollWhatsApp: (...args: unknown[]) => Promise<unknown>;
+    loginWeb: (...args: unknown[]) => Promise<unknown>;
+    startWebLoginWithQr: (...args: unknown[]) => Promise<unknown>;
+    waitForWebLogin: (...args: unknown[]) => Promise<unknown>;
     monitorWebChannel: typeof import("../../channels/web/index.js").monitorWebChannel;
     handleWhatsAppAction: typeof import("../../agents/tools/whatsapp-actions.js").handleWhatsAppAction;
     createLoginTool: typeof import("../../channels/plugins/agent-tools/whatsapp-login.js").createWhatsAppLoginTool;
   };
   line: {
-    listLineAccountIds: typeof import("../../line/accounts.js").listLineAccountIds;
-    resolveDefaultLineAccountId: typeof import("../../line/accounts.js").resolveDefaultLineAccountId;
-    resolveLineAccount: typeof import("../../line/accounts.js").resolveLineAccount;
-    normalizeAccountId: typeof import("../../line/accounts.js").normalizeAccountId;
-    probeLineBot: typeof import("../../line/probe.js").probeLineBot;
-    sendMessageLine: typeof import("../../line/send.js").sendMessageLine;
-    pushMessageLine: typeof import("../../line/send.js").pushMessageLine;
-    pushMessagesLine: typeof import("../../line/send.js").pushMessagesLine;
-    pushFlexMessage: typeof import("../../line/send.js").pushFlexMessage;
-    pushTemplateMessage: typeof import("../../line/send.js").pushTemplateMessage;
-    pushLocationMessage: typeof import("../../line/send.js").pushLocationMessage;
-    pushTextMessageWithQuickReplies: typeof import("../../line/send.js").pushTextMessageWithQuickReplies;
-    createQuickReplyItems: typeof import("../../line/send.js").createQuickReplyItems;
-    buildTemplateMessageFromPayload: typeof import("../../line/template-messages.js").buildTemplateMessageFromPayload;
-    monitorLineProvider: typeof import("../../line/monitor.js").monitorLineProvider;
+    listLineAccountIds: () => string[];
+    resolveDefaultLineAccountId: (...args: unknown[]) => string | undefined;
+    resolveLineAccount: (...args: unknown[]) => unknown;
+    normalizeAccountId: (accountId?: string | null) => string;
+    probeLineBot: (...args: unknown[]) => Promise<unknown>;
+    sendMessageLine: (...args: unknown[]) => Promise<unknown>;
+    pushMessageLine: (...args: unknown[]) => Promise<unknown>;
+    pushMessagesLine: (...args: unknown[]) => Promise<unknown>;
+    pushFlexMessage: (...args: unknown[]) => Promise<unknown>;
+    pushTemplateMessage: (...args: unknown[]) => Promise<unknown>;
+    pushLocationMessage: (...args: unknown[]) => Promise<unknown>;
+    pushTextMessageWithQuickReplies: (...args: unknown[]) => Promise<unknown>;
+    createQuickReplyItems: (...args: unknown[]) => unknown;
+    buildTemplateMessageFromPayload: (...args: unknown[]) => unknown;
+    monitorLineProvider: (...args: unknown[]) => Promise<unknown>;
   };
 };

@@ -1,9 +1,4 @@
 import {
-  markdownToSignalTextChunks,
-  type SignalTextStyleRange,
-} from "../../../extensions/signal/src/format.js";
-import { sendMessageSignal } from "../../../extensions/signal/src/send.js";
-import {
   chunkByParagraph,
   chunkMarkdownTextWithMode,
   resolveChunkMode,
@@ -50,6 +45,37 @@ export { resolveOutboundSendDep, type OutboundSendDeps } from "./send-deps.js";
 
 const log = createSubsystemLogger("outbound/deliver");
 const TELEGRAM_TEXT_LIMIT = 4096;
+
+type SignalTextStyleRange = {
+  start: number;
+  length: number;
+  style: string;
+};
+
+function markdownToSignalTextChunks(
+  text: string,
+  limit: number,
+  _options?: { tableMode?: string },
+): Array<{ text: string; styles: SignalTextStyleRange[] }> {
+  if (!text) {
+    return [];
+  }
+  if (!Number.isFinite(limit) || limit <= 0 || text.length <= limit) {
+    return [{ text, styles: [] }];
+  }
+  const chunks: Array<{ text: string; styles: SignalTextStyleRange[] }> = [];
+  for (let start = 0; start < text.length; start += limit) {
+    chunks.push({
+      text: text.slice(start, start + limit),
+      styles: [],
+    });
+  }
+  return chunks;
+}
+
+async function sendMessageSignal(): Promise<never> {
+  throw new Error("Signal outbound is unavailable in this trimmed build.");
+}
 
 export type OutboundDeliveryResult = {
   channel: Exclude<OutboundChannel, "none">;

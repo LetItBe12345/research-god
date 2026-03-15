@@ -1,4 +1,19 @@
-import { parseTelegramTarget } from "../../../extensions/telegram/src/targets.js";
+function parseTelegramTarget(target: string): { chatId: string } {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return { chatId: "" };
+  }
+  const normalized = trimmed.replace(/^telegram:/i, "");
+  const parts = normalized
+    .split(":")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const topicIndex = parts.findIndex((part) => part.toLowerCase() === "topic");
+  if (topicIndex > 0) {
+    return { chatId: parts[topicIndex - 1] ?? "" };
+  }
+  return { chatId: parts.at(-1) ?? normalized };
+}
 
 type TelegramConversationParams = {
   ctx: {

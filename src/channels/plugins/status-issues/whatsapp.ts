@@ -1,2 +1,5 @@
-// Shim: re-exports from extensions/whatsapp/src/status-issues.ts
-export * from "../../../../extensions/whatsapp/src/status-issues.js";
+import type { ChannelStatusIssue } from "../types.js";
+
+export function collectWhatsAppStatusIssues(): ChannelStatusIssue[] {
+  return [];
+}

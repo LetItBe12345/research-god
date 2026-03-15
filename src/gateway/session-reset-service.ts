@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { unbindThreadBindingsBySessionKey } from "../../extensions/discord/src/monitor/thread-bindings.js";
 import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { clearBootstrapSnapshot } from "../agents/bootstrap-cache.js";
@@ -16,6 +15,7 @@ import {
 import { logVerbose } from "../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../hooks/internal-hooks.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
+import { unbindThreadBindingsBySessionKey } from "../plugin-sdk/discord.js";
 import {
   isSubagentSessionKey,
   normalizeAgentId,

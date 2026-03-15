@@ -1,4 +1,3 @@
-import { buildBrowseProvidersButton } from "../../../extensions/telegram/src/model-buttons.js";
 import { resolveAuthStorePathForDisplay } from "../../agents/auth-profiles.js";
 import {
   type ModelAliasIndex,
@@ -25,6 +24,10 @@ import {
 } from "./directive-handling.model-picker.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import { type ModelDirectiveSelection, resolveModelDirectiveSelection } from "./model-selection.js";
+
+function buildBrowseProvidersButton() {
+  return [];
+}
 
 function pushUniqueCatalogEntry(params: {
   keys: Set<string>;

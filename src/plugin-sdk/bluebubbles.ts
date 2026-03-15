@@ -68,13 +68,29 @@ export {
 export { buildSecretInputSchema } from "./secret-input-schema.js";
 export { ToolPolicySchema } from "../config/zod-schema.agent-runtime.js";
 export { MarkdownConfigSchema } from "../config/zod-schema.core.js";
-export type { ParsedChatTarget } from "../../extensions/imessage/src/target-parsing-helpers.js";
-export {
-  parseChatAllowTargetPrefixes,
-  parseChatTargetPrefixesOrThrow,
-  resolveServicePrefixedAllowTarget,
-  resolveServicePrefixedTarget,
-} from "../../extensions/imessage/src/target-parsing-helpers.js";
+export type ParsedChatTarget = {
+  service?: string;
+  target: string;
+};
+export function parseChatAllowTargetPrefixes(value: string): string[] {
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+export function parseChatTargetPrefixesOrThrow(value: string): string[] {
+  const parsed = parseChatAllowTargetPrefixes(value);
+  if (parsed.length === 0) {
+    throw new Error("Expected at least one chat target prefix.");
+  }
+  return parsed;
+}
+export function resolveServicePrefixedAllowTarget(value: string): string {
+  return value.trim();
+}
+export function resolveServicePrefixedTarget(value: string): string {
+  return value.trim();
+}
 export { stripMarkdown } from "../line/markdown-to-line.js";
 export { parseFiniteNumber } from "../infra/parse-finite-number.js";
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
@@ -92,7 +108,9 @@ export { isAllowedParsedChatSender } from "./allow-from.js";
 export { readBooleanParam } from "./boolean-param.js";
 export { mapAllowFromEntries } from "./channel-config-helpers.js";
 export { createScopedPairingAccess } from "./pairing-access.js";
-export { issuePairingChallenge } from "../pairing/pairing-challenge.js";
+export async function issuePairingChallenge() {
+  throw new Error("Pairing is unavailable in this trimmed build.");
+}
 export { resolveRequestUrl } from "./request-url.js";
 export {
   buildComputedAccountStatusSnapshot,

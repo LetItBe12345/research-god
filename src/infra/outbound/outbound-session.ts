@@ -1,25 +1,3 @@
-import {
-  parseDiscordTarget,
-  type DiscordTargetKind,
-} from "../../../extensions/discord/src/targets.js";
-import {
-  parseIMessageTarget,
-  normalizeIMessageHandle,
-} from "../../../extensions/imessage/src/targets.js";
-import {
-  looksLikeUuid,
-  resolveSignalPeerId,
-  resolveSignalRecipient,
-  resolveSignalSender,
-} from "../../../extensions/signal/src/identity.js";
-import { resolveSlackAccount } from "../../../extensions/slack/src/accounts.js";
-import { createSlackWebClient } from "../../../extensions/slack/src/client.js";
-import { normalizeAllowListLower } from "../../../extensions/slack/src/monitor/allow-list.js";
-import { parseSlackTarget } from "../../../extensions/slack/src/targets.js";
-import { buildTelegramGroupPeerId } from "../../../extensions/telegram/src/bot/helpers.js";
-import { resolveTelegramTargetChatType } from "../../../extensions/telegram/src/inline-buttons.js";
-import { parseTelegramThreadId } from "../../../extensions/telegram/src/outbound-params.js";
-import { parseTelegramTarget } from "../../../extensions/telegram/src/targets.js";
 import type { MsgContext } from "../../auto-reply/templating.js";
 import type { ChatType } from "../../channels/chat-type.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
@@ -30,6 +8,157 @@ import { buildAgentSessionKey, type RoutePeer } from "../../routing/resolve-rout
 import { resolveThreadSessionKeys } from "../../routing/session-key.js";
 import { isWhatsAppGroupJid, normalizeWhatsAppTarget } from "../../whatsapp/normalize.js";
 import type { ResolvedMessagingTarget } from "./target-resolver.js";
+
+type DiscordTargetKind = "channel" | "user";
+
+function parseDiscordTarget(target: string, options?: { defaultKind?: DiscordTargetKind }) {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^discord:/i, "");
+  const match = /^(channel|user|dm):(.+)$/i.exec(normalized);
+  if (match) {
+    return {
+      kind: (match[1].toLowerCase() === "dm" ? "user" : match[1].toLowerCase()) as DiscordTargetKind,
+      id: match[2].trim(),
+    };
+  }
+  return { kind: options?.defaultKind ?? "channel", id: normalized };
+}
+
+function parseIMessageTarget(target: string): { to: string } {
+  return { to: target.trim().replace(/^imessage:/i, "") };
+}
+
+function normalizeIMessageHandle(handle: string): string {
+  return handle.trim().toLowerCase();
+}
+
+function looksLikeUuid(value: string | null | undefined): boolean {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function resolveSignalSender(params: { sourceUuid?: string | null; sourceNumber?: string | null }) {
+  if (params.sourceUuid?.trim()) {
+    return { uuid: params.sourceUuid.trim(), number: params.sourceNumber?.trim() ?? "" };
+  }
+  if (params.sourceNumber?.trim()) {
+    return { uuid: "", number: params.sourceNumber.trim() };
+  }
+  return null;
+}
+
+function resolveSignalPeerId(sender: { uuid?: string; number?: string }): string {
+  return sender.uuid?.trim() || sender.number?.trim() || "";
+}
+
+function resolveSignalRecipient(sender: { uuid?: string; number?: string }): string {
+  return sender.number?.trim() || sender.uuid?.trim() || "";
+}
+
+function resolveSlackAccount(_params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+}): {
+  accountId: string;
+  dm?: { groupChannels?: string[] };
+  channels?: Record<string, unknown>;
+  botToken?: string;
+  userToken?: string;
+} {
+  return {
+    accountId: _params.accountId?.trim() || "default",
+    dm: { groupChannels: [] },
+    channels: {},
+    botToken: "",
+    userToken: "",
+  };
+}
+
+function createSlackWebClient(_token: string) {
+  return {
+    conversations: {
+      info: async (_params: { channel: string }) => ({ channel: undefined }),
+    },
+  };
+}
+
+function normalizeAllowListLower(values: unknown): string[] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return values
+    .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+    .filter(Boolean);
+}
+
+function parseSlackTarget(target: string, options?: { defaultKind?: "channel" | "user" }) {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^slack:/i, "");
+  const match = /^(channel|user|dm):(.+)$/i.exec(normalized);
+  if (match) {
+    return {
+      kind: (match[1].toLowerCase() === "dm" ? "user" : match[1].toLowerCase()) as
+        | "channel"
+        | "user",
+      id: match[2].trim(),
+    };
+  }
+  return { kind: options?.defaultKind ?? "channel", id: normalized };
+}
+
+function buildTelegramGroupPeerId(chatId: string, threadId: string | number): string {
+  return `${chatId}:topic:${threadId}`;
+}
+
+function parseTelegramThreadId(value?: string | number | null): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === "string" && /^-?\d+$/.test(value.trim())) {
+    return Number.parseInt(value.trim(), 10);
+  }
+  return undefined;
+}
+
+function parseTelegramTarget(
+  target: string,
+): { chatId: string; messageThreadId?: number; chatType?: ChatType | "unknown" } {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return { chatId: "", chatType: "unknown" };
+  }
+  const normalized = trimmed.replace(/^telegram:/i, "");
+  const parts = normalized
+    .split(":")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const topicIndex = parts.findIndex((part) => part.toLowerCase() === "topic");
+  const chatId = topicIndex > 0 ? (parts[topicIndex - 1] ?? "") : (parts.at(-1) ?? normalized);
+  const threadId =
+    topicIndex > 0 ? Number.parseInt(parts[topicIndex + 1] ?? "", 10) : undefined;
+  return {
+    chatId,
+    messageThreadId: Number.isFinite(threadId) ? threadId : undefined,
+    chatType: resolveTelegramTargetChatType(target),
+  };
+}
+
+function resolveTelegramTargetChatType(target: string): ChatType | "unknown" {
+  const normalized = target.trim().replace(/^telegram:/i, "");
+  if (!normalized) {
+    return "unknown";
+  }
+  const chatId = normalized.split(":").filter(Boolean).at(-1) ?? normalized;
+  if (chatId.startsWith("-100") || chatId.startsWith("-")) {
+    return "group";
+  }
+  return "direct";
+}
 
 export type OutboundSessionRoute = {
   sessionKey: string;

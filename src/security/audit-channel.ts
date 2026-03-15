@@ -1,8 +1,4 @@
 import {
-  isNumericTelegramUserId,
-  normalizeTelegramAllowFromEntry,
-} from "../../extensions/telegram/src/allow-from.js";
-import {
   hasConfiguredUnavailableCredentialStatus,
   hasResolvedCredentialValue,
 } from "../channels/account-snapshot-fields.js";
@@ -22,6 +18,14 @@ import {
   isDiscordMutableAllowEntry,
   isZalouserMutableGroupEntry,
 } from "./mutable-allowlist-detectors.js";
+
+function normalizeTelegramAllowFromEntry(entry: unknown): string {
+  return String(entry ?? "").trim().replace(/^@+/, "@");
+}
+
+function isNumericTelegramUserId(value: string): boolean {
+  return /^-?\d+$/.test(value.trim());
+}
 
 function normalizeAllowFromList(list: Array<string | number> | undefined | null): string[] {
   return normalizeStringEntries(Array.isArray(list) ? list : undefined);

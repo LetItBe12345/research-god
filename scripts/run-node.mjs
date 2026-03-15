@@ -193,6 +193,43 @@ const runOpenClaw = async (deps) => {
   return res.exitCode ?? 1;
 };
 
+const runOpenClawFromSource = async (deps) => {
+  const nodeProcess = deps.spawn(deps.execPath, ["--import", "tsx", "src/entry.ts", ...deps.args], {
+    cwd: deps.cwd,
+    env: deps.env,
+    stdio: "inherit",
+  });
+  const res = await new Promise((resolve) => {
+    nodeProcess.on("exit", (exitCode, exitSignal) => {
+      resolve({ exitCode, exitSignal });
+    });
+  });
+  if (res.exitSignal) {
+    return 1;
+  }
+  return res.exitCode ?? 1;
+};
+
+const shouldPrintStaticHelp = (args) => args.includes("--help") || args.includes("-h");
+
+const printStaticHelp = (deps) => {
+  const lines = [
+    "Usage: openclaw [options] [command]",
+    "",
+    "Commands:",
+    "  agent",
+    "  config",
+    "  doctor",
+    "  gateway",
+    "  models",
+    "  status",
+    "",
+    "Options:",
+    "  -h, --help     Display help for command",
+  ];
+  deps.stderr.write(`${lines.join("\n")}\n`);
+};
+
 const writeBuildStamp = (deps) => {
   try {
     deps.fs.mkdirSync(deps.distRoot, { recursive: true });
@@ -225,6 +262,16 @@ export async function runNodeMain(params = {}) {
   deps.buildStampPath = path.join(deps.distRoot, ".buildstamp");
   deps.srcRoot = path.join(deps.cwd, "src");
   deps.configFiles = [path.join(deps.cwd, "tsconfig.json"), path.join(deps.cwd, "package.json")];
+
+  if (shouldPrintStaticHelp(deps.args)) {
+    printStaticHelp(deps);
+    return 0;
+  }
+
+  if (deps.env.OPENCLAW_PREFER_SOURCE !== "0") {
+    logRunner("Running from TypeScript source.", deps);
+    return await runOpenClawFromSource(deps);
+  }
 
   if (!shouldBuild(deps)) {
     return await runOpenClaw(deps);

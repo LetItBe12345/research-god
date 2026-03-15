@@ -1,1 +1,5 @@
-export * from "../../../../extensions/telegram/src/status-issues.js";
+import type { ChannelStatusIssue } from "../types.js";
+
+export function collectTelegramStatusIssues(): ChannelStatusIssue[] {
+  return [];
+}

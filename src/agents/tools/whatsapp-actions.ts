@@ -1,8 +1,11 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { sendReactionWhatsApp } from "../../../extensions/whatsapp/src/send.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { createActionGate, jsonResult, readReactionParams, readStringParam } from "./common.js";
 import { resolveAuthorizedWhatsAppOutboundTarget } from "./whatsapp-target-auth.js";
+
+async function sendReactionWhatsApp(): Promise<never> {
+  throw new Error("WhatsApp actions are unavailable in this trimmed build.");
+}
 
 export async function handleWhatsAppAction(
   params: Record<string, unknown>,

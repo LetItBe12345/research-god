@@ -1,4 +1,3 @@
-import type { StickerMetadata } from "../../extensions/telegram/src/bot/types.js";
 import type { ChannelId } from "../channels/plugins/types.js";
 import type {
   MediaUnderstandingDecision,
@@ -7,6 +6,13 @@ import type {
 import type { InputProvenance } from "../sessions/input-provenance.js";
 import type { InternalMessageChannel } from "../utils/message-channel.js";
 import type { CommandArgs } from "./commands-registry.types.js";
+
+type StickerMetadata = {
+  emoji?: string;
+  set_name?: string;
+  file_id?: string;
+  description?: string;
+};
 
 /** Valid message channels for routing. */
 export type OriginatingChannelType = ChannelId | InternalMessageChannel;

@@ -1,4 +1,3 @@
-import { parseTelegramTarget } from "../../../extensions/telegram/src/targets.js";
 import { isMessagingToolDuplicate } from "../../agents/pi-embedded-helpers.js";
 import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
@@ -9,6 +8,26 @@ import type { OriginatingChannelType } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { extractReplyToTag } from "./reply-tags.js";
 import { createReplyToModeFilterForChannel } from "./reply-threading.js";
+
+function parseTelegramTarget(target: string): { chatId: string; messageThreadId?: string } {
+  const trimmed = target.trim();
+  if (!trimmed) {
+    return { chatId: "" };
+  }
+  const normalized = trimmed.replace(/^telegram:/i, "");
+  const parts = normalized
+    .split(":")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const topicIndex = parts.findIndex((part) => part.toLowerCase() === "topic");
+  if (topicIndex > 0) {
+    return {
+      chatId: parts[topicIndex - 1] ?? "",
+      messageThreadId: parts[topicIndex + 1] ?? undefined,
+    };
+  }
+  return { chatId: parts.at(-1) ?? normalized };
+}
 
 export function formatBtwTextForExternalDelivery(payload: ReplyPayload): string | undefined {
   const text = payload.text?.trim();

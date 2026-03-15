@@ -1,4 +1,7 @@
-import type { DiscordSendResult } from "../../extensions/discord/src/send.types.js";
+type DiscordSendResult = {
+  messageId: string;
+  channelId?: string;
+};
 
 type DiscordSendOptionInput = {
   replyToId?: string | null;

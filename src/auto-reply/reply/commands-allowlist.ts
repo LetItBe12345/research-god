@@ -1,11 +1,3 @@
-import { resolveDiscordAccount } from "../../../extensions/discord/src/accounts.js";
-import { resolveDiscordUserAllowlist } from "../../../extensions/discord/src/resolve-users.js";
-import { resolveIMessageAccount } from "../../../extensions/imessage/src/accounts.js";
-import { resolveSignalAccount } from "../../../extensions/signal/src/accounts.js";
-import { resolveSlackAccount } from "../../../extensions/slack/src/accounts.js";
-import { resolveSlackUserAllowlist } from "../../../extensions/slack/src/resolve-users.js";
-import { resolveTelegramAccount } from "../../../extensions/telegram/src/accounts.js";
-import { resolveWhatsAppAccount } from "../../../extensions/whatsapp/src/accounts.js";
 import { getChannelDock } from "../../channels/dock.js";
 import { resolveExplicitConfigWriteTarget } from "../../channels/plugins/config-writes.js";
 import { listPairingChannels } from "../../channels/plugins/pairing.js";
@@ -32,6 +24,52 @@ import { normalizeStringEntries } from "../../shared/string-normalization.js";
 import { rejectUnauthorizedCommand, requireCommandFlagEnabled } from "./command-gates.js";
 import type { CommandHandler } from "./commands-types.js";
 import { resolveConfigWriteDeniedText } from "./config-write-authorization.js";
+
+function buildStubAccount(accountId?: string | null) {
+  return {
+    accountId: normalizeAccountId(accountId),
+    config: {
+      allowFrom: [] as Array<string | number>,
+      groupAllowFrom: [] as Array<string | number>,
+      dmPolicy: undefined as string | undefined,
+      groupPolicy: undefined as string | undefined,
+    },
+    botToken: "",
+    userToken: "",
+  };
+}
+
+function resolveDiscordAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
+
+async function resolveDiscordUserAllowlist(params: { token: string; entries: string[] }) {
+  return params.entries.map((entry) => ({ input: entry, resolved: false, name: null }));
+}
+
+function resolveIMessageAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
+
+function resolveSignalAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
+
+function resolveSlackAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
+
+async function resolveSlackUserAllowlist(params: { token: string; entries: string[] }) {
+  return params.entries.map((entry) => ({ input: entry, resolved: false, name: null }));
+}
+
+function resolveTelegramAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
+
+function resolveWhatsAppAccount(params: { cfg: OpenClawConfig; accountId?: string | null }) {
+  return buildStubAccount(params.accountId);
+}
 
 type AllowlistScope = "dm" | "group" | "all";
 type AllowlistAction = "list" | "add" | "remove";

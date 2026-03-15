@@ -1,10 +1,31 @@
-import { parseSlackBlocksInput } from "../../../../extensions/slack/src/blocks-input.js";
-import { sendMessageSlack, type SlackSendIdentity } from "../../../../extensions/slack/src/send.js";
 import type { OutboundIdentity } from "../../../infra/outbound/identity.js";
 import { resolveOutboundSendDep } from "../../../infra/outbound/send-deps.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import type { ChannelOutboundAdapter } from "../types.js";
 import { sendTextMediaPayload } from "./direct-text-media.js";
+
+type SlackSendIdentity = {
+  username?: string;
+  iconUrl?: string;
+  iconEmoji?: string;
+};
+
+type SlackSendOptions = {
+  cfg: Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0]["cfg"];
+  threadTs?: string;
+  accountId?: string;
+  mediaUrl?: string;
+  mediaLocalRoots?: readonly string[];
+  blocks?: unknown[];
+  identity?: SlackSendIdentity;
+};
+
+type SlackSendResult = {
+  messageId: string;
+  channelId?: string;
+};
+
+type SlackSendFn = (to: string, text: string, opts: SlackSendOptions) => Promise<SlackSendResult>;
 
 function resolveSlackSendIdentity(identity?: OutboundIdentity): SlackSendIdentity | undefined {
   if (!identity) {
@@ -18,6 +39,10 @@ function resolveSlackSendIdentity(identity?: OutboundIdentity): SlackSendIdentit
     return undefined;
   }
   return { username, iconUrl, iconEmoji };
+}
+
+function parseSlackBlocksInput(value: unknown): unknown[] | undefined {
+  return Array.isArray(value) ? value : undefined;
 }
 
 async function applySlackMessageSendingHooks(params: {
@@ -49,22 +74,30 @@ async function applySlackMessageSendingHooks(params: {
   return { cancelled: false, text: hookResult?.content ?? params.text };
 }
 
+function resolveSlackSender(deps: Record<string, unknown> | null | undefined): SlackSendFn {
+  const injected = resolveOutboundSendDep<SlackSendFn>(deps, "slack");
+  if (injected) {
+    return injected;
+  }
+  return async () => {
+    throw new Error("Slack outbound is unavailable in this trimmed build.");
+  };
+}
+
 async function sendSlackOutboundMessage(params: {
-  cfg: NonNullable<Parameters<typeof sendMessageSlack>[2]>["cfg"];
+  cfg: SlackSendOptions["cfg"];
   to: string;
   text: string;
   mediaUrl?: string;
   mediaLocalRoots?: readonly string[];
-  blocks?: NonNullable<Parameters<typeof sendMessageSlack>[2]>["blocks"];
+  blocks?: unknown[];
   accountId?: string | null;
   deps?: { [channelId: string]: unknown } | null;
   replyToId?: string | null;
   threadId?: string | number | null;
   identity?: OutboundIdentity;
 }) {
-  const send =
-    resolveOutboundSendDep<typeof sendMessageSlack>(params.deps, "slack") ?? sendMessageSlack;
-  // Use threadId fallback so routed tool notifications stay in the Slack thread.
+  const send = resolveSlackSender(params.deps);
   const threadTs =
     params.replyToId ?? (params.threadId != null ? String(params.threadId) : undefined);
   const hookResult = await applySlackMessageSendingHooks({

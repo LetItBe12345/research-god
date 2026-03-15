@@ -1,4 +1,3 @@
-import { normalizeIMessageHandle } from "../../../../extensions/imessage/src/targets.js";
 import { looksLikeHandleOrPhoneTarget, trimMessagingTarget } from "./shared.js";
 
 // Service prefixes that indicate explicit delivery method; must be preserved during normalization
@@ -44,4 +43,33 @@ export function looksLikeIMessageTargetId(raw: string): boolean {
     raw: trimmed,
     prefixPattern: /^(imessage:|sms:|auto:)/i,
   });
+}
+
+function normalizeIMessageHandle(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (CHAT_TARGET_PREFIX_RE.test(trimmed)) {
+    const separatorIndex = trimmed.indexOf(":");
+    if (separatorIndex === -1) {
+      return trimmed.toLowerCase();
+    }
+    const rawPrefix = trimmed.slice(0, separatorIndex).toLowerCase();
+    const rest = trimmed.slice(separatorIndex + 1);
+    const prefix =
+      rawPrefix === "chatid" || rawPrefix === "chat"
+        ? "chat_id"
+        : rawPrefix === "chatguid" || rawPrefix === "guid"
+          ? "chat_guid"
+          : rawPrefix === "chatidentifier" || rawPrefix === "chatident"
+            ? "chat_identifier"
+            : rawPrefix;
+    return `${prefix}:${rest}`;
+  }
+  if (trimmed.includes("@")) {
+    return trimmed.toLowerCase();
+  }
+  const digits = trimmed.replace(/[^\d+]/g, "");
+  return digits || trimmed;
 }

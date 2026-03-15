@@ -1,38 +1,4 @@
-import { auditDiscordChannelPermissions } from "../../../extensions/discord/src/audit.js";
-import {
-  listDiscordDirectoryGroupsLive,
-  listDiscordDirectoryPeersLive,
-} from "../../../extensions/discord/src/directory-live.js";
-import { monitorDiscordProvider } from "../../../extensions/discord/src/monitor.js";
-import { probeDiscord } from "../../../extensions/discord/src/probe.js";
-import { resolveDiscordChannelAllowlist } from "../../../extensions/discord/src/resolve-channels.js";
-import { resolveDiscordUserAllowlist } from "../../../extensions/discord/src/resolve-users.js";
-import { sendMessageDiscord, sendPollDiscord } from "../../../extensions/discord/src/send.js";
-import { monitorIMessageProvider } from "../../../extensions/imessage/src/monitor.js";
-import { probeIMessage } from "../../../extensions/imessage/src/probe.js";
-import { sendMessageIMessage } from "../../../extensions/imessage/src/send.js";
-import { monitorSignalProvider } from "../../../extensions/signal/src/index.js";
-import { probeSignal } from "../../../extensions/signal/src/probe.js";
-import { sendMessageSignal } from "../../../extensions/signal/src/send.js";
-import {
-  listSlackDirectoryGroupsLive,
-  listSlackDirectoryPeersLive,
-} from "../../../extensions/slack/src/directory-live.js";
-import { monitorSlackProvider } from "../../../extensions/slack/src/index.js";
-import { probeSlack } from "../../../extensions/slack/src/probe.js";
-import { resolveSlackChannelAllowlist } from "../../../extensions/slack/src/resolve-channels.js";
-import { resolveSlackUserAllowlist } from "../../../extensions/slack/src/resolve-users.js";
-import { sendMessageSlack } from "../../../extensions/slack/src/send.js";
-import {
-  auditTelegramGroupMembership,
-  collectTelegramUnmentionedGroupIds,
-} from "../../../extensions/telegram/src/audit.js";
-import { monitorTelegramProvider } from "../../../extensions/telegram/src/monitor.js";
-import { probeTelegram } from "../../../extensions/telegram/src/probe.js";
-import { sendMessageTelegram, sendPollTelegram } from "../../../extensions/telegram/src/send.js";
-import { resolveTelegramToken } from "../../../extensions/telegram/src/token.js";
 import { resolveEffectiveMessagesConfig, resolveHumanDelayConfig } from "../../agents/identity.js";
-import { handleSlackAction } from "../../agents/tools/slack-actions.js";
 import {
   chunkByNewline,
   chunkMarkdownText,
@@ -69,9 +35,6 @@ import { dispatchReplyWithBufferedBlockDispatcher } from "../../auto-reply/reply
 import { createReplyDispatcherWithTyping } from "../../auto-reply/reply/reply-dispatcher.js";
 import { removeAckReactionAfterReply, shouldAckReaction } from "../../channels/ack-reactions.js";
 import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
-import { discordMessageActions } from "../../channels/plugins/actions/discord.js";
-import { signalMessageActions } from "../../channels/plugins/actions/signal.js";
-import { telegramMessageActions } from "../../channels/plugins/actions/telegram.js";
 import { recordInboundSession } from "../../channels/session.js";
 import {
   resolveChannelGroupPolicy,
@@ -85,36 +48,82 @@ import {
   updateLastRoute,
 } from "../../config/sessions.js";
 import { getChannelActivity, recordChannelActivity } from "../../infra/channel-activity.js";
-import {
-  listLineAccountIds,
-  normalizeAccountId as normalizeLineAccountId,
-  resolveDefaultLineAccountId,
-  resolveLineAccount,
-} from "../../line/accounts.js";
-import { monitorLineProvider } from "../../line/monitor.js";
-import { probeLineBot } from "../../line/probe.js";
-import {
-  createQuickReplyItems,
-  pushFlexMessage,
-  pushLocationMessage,
-  pushMessageLine,
-  pushMessagesLine,
-  pushTemplateMessage,
-  pushTextMessageWithQuickReplies,
-  sendMessageLine,
-} from "../../line/send.js";
-import { buildTemplateMessageFromPayload } from "../../line/template-messages.js";
 import { convertMarkdownTables } from "../../markdown/tables.js";
 import { fetchRemoteMedia } from "../../media/fetch.js";
 import { saveMediaBuffer } from "../../media/store.js";
-import { buildPairingReply } from "../../pairing/pairing-messages.js";
-import {
-  readChannelAllowFromStore,
-  upsertChannelPairingRequest,
-} from "../../pairing/pairing-store.js";
 import { buildAgentSessionKey, resolveAgentRoute } from "../../routing/resolve-route.js";
 import { createRuntimeWhatsApp } from "./runtime-whatsapp.js";
 import type { PluginRuntime } from "./types.js";
+
+const unsupported = (feature: string): never => {
+  throw new Error(`${feature} is unavailable in this trimmed build.`);
+};
+
+function createUnsupportedChannelRuntime<T>(feature: string): T {
+  const reject = async () => unsupported(feature);
+  return {
+    messageActions: {},
+    auditChannelPermissions: reject,
+    listDirectoryGroupsLive: reject,
+    listDirectoryPeersLive: reject,
+    probeDiscord: reject,
+    resolveChannelAllowlist: reject,
+    resolveUserAllowlist: reject,
+    sendMessageDiscord: reject,
+    sendPollDiscord: reject,
+    monitorDiscordProvider: reject,
+    probeSlack: reject,
+    sendMessageSlack: reject,
+    monitorSlackProvider: reject,
+    handleSlackAction: reject,
+    auditGroupMembership: reject,
+    collectUnmentionedGroupIds: reject,
+    probeTelegram: reject,
+    resolveTelegramToken: reject,
+    sendMessageTelegram: reject,
+    sendPollTelegram: reject,
+    monitorTelegramProvider: reject,
+    probeSignal: reject,
+    sendMessageSignal: reject,
+    monitorSignalProvider: reject,
+    probeIMessage: reject,
+    sendMessageIMessage: reject,
+    monitorIMessageProvider: reject,
+  } as T;
+}
+
+function createUnavailablePairingRuntime(): PluginRuntime["channel"]["pairing"] {
+  const reject = async () => unsupported("Pairing");
+  return {
+    buildPairingReply: (() => unsupported("Pairing")) as PluginRuntime["channel"]["pairing"]["buildPairingReply"],
+    readAllowFromStore: reject as PluginRuntime["channel"]["pairing"]["readAllowFromStore"],
+    upsertPairingRequest: reject as PluginRuntime["channel"]["pairing"]["upsertPairingRequest"],
+  };
+}
+
+function createUnavailableLineRuntime(): PluginRuntime["channel"]["line"] {
+  const reject = async () => unsupported("LINE");
+  return {
+    listLineAccountIds: (() => []) as PluginRuntime["channel"]["line"]["listLineAccountIds"],
+    resolveDefaultLineAccountId: (() => undefined) as PluginRuntime["channel"]["line"]["resolveDefaultLineAccountId"],
+    resolveLineAccount: (() => unsupported("LINE")) as PluginRuntime["channel"]["line"]["resolveLineAccount"],
+    normalizeAccountId: ((accountId?: string | null) => (accountId ?? "").trim()) as PluginRuntime["channel"]["line"]["normalizeAccountId"],
+    probeLineBot: reject as PluginRuntime["channel"]["line"]["probeLineBot"],
+    sendMessageLine: reject as PluginRuntime["channel"]["line"]["sendMessageLine"],
+    pushMessageLine: reject as PluginRuntime["channel"]["line"]["pushMessageLine"],
+    pushMessagesLine: reject as PluginRuntime["channel"]["line"]["pushMessagesLine"],
+    pushFlexMessage: reject as PluginRuntime["channel"]["line"]["pushFlexMessage"],
+    pushTemplateMessage: reject as PluginRuntime["channel"]["line"]["pushTemplateMessage"],
+    pushLocationMessage: reject as PluginRuntime["channel"]["line"]["pushLocationMessage"],
+    pushTextMessageWithQuickReplies:
+      reject as PluginRuntime["channel"]["line"]["pushTextMessageWithQuickReplies"],
+    createQuickReplyItems:
+      (() => unsupported("LINE")) as PluginRuntime["channel"]["line"]["createQuickReplyItems"],
+    buildTemplateMessageFromPayload:
+      (() => unsupported("LINE")) as PluginRuntime["channel"]["line"]["buildTemplateMessageFromPayload"],
+    monitorLineProvider: reject as PluginRuntime["channel"]["line"]["monitorLineProvider"],
+  };
+}
 
 export function createRuntimeChannel(): PluginRuntime["channel"] {
   return {
@@ -147,20 +156,7 @@ export function createRuntimeChannel(): PluginRuntime["channel"] {
       buildAgentSessionKey,
       resolveAgentRoute,
     },
-    pairing: {
-      buildPairingReply,
-      readAllowFromStore: ({ channel, accountId, env }) =>
-        readChannelAllowFromStore(channel, env, accountId),
-      upsertPairingRequest: ({ channel, id, accountId, meta, env, pairingAdapter }) =>
-        upsertChannelPairingRequest({
-          channel,
-          id,
-          accountId,
-          meta,
-          env,
-          pairingAdapter,
-        }),
-    },
+    pairing: createUnavailablePairingRuntime(),
     media: {
       fetchRemoteMedia,
       saveMediaBuffer,
@@ -199,66 +195,12 @@ export function createRuntimeChannel(): PluginRuntime["channel"] {
       shouldComputeCommandAuthorized,
       shouldHandleTextCommands,
     },
-    discord: {
-      messageActions: discordMessageActions,
-      auditChannelPermissions: auditDiscordChannelPermissions,
-      listDirectoryGroupsLive: listDiscordDirectoryGroupsLive,
-      listDirectoryPeersLive: listDiscordDirectoryPeersLive,
-      probeDiscord,
-      resolveChannelAllowlist: resolveDiscordChannelAllowlist,
-      resolveUserAllowlist: resolveDiscordUserAllowlist,
-      sendMessageDiscord,
-      sendPollDiscord,
-      monitorDiscordProvider,
-    },
-    slack: {
-      listDirectoryGroupsLive: listSlackDirectoryGroupsLive,
-      listDirectoryPeersLive: listSlackDirectoryPeersLive,
-      probeSlack,
-      resolveChannelAllowlist: resolveSlackChannelAllowlist,
-      resolveUserAllowlist: resolveSlackUserAllowlist,
-      sendMessageSlack,
-      monitorSlackProvider,
-      handleSlackAction,
-    },
-    telegram: {
-      auditGroupMembership: auditTelegramGroupMembership,
-      collectUnmentionedGroupIds: collectTelegramUnmentionedGroupIds,
-      probeTelegram,
-      resolveTelegramToken,
-      sendMessageTelegram,
-      sendPollTelegram,
-      monitorTelegramProvider,
-      messageActions: telegramMessageActions,
-    },
-    signal: {
-      probeSignal,
-      sendMessageSignal,
-      monitorSignalProvider,
-      messageActions: signalMessageActions,
-    },
-    imessage: {
-      monitorIMessageProvider,
-      probeIMessage,
-      sendMessageIMessage,
-    },
+    discord: createUnsupportedChannelRuntime<PluginRuntime["channel"]["discord"]>("Discord"),
+    slack: createUnsupportedChannelRuntime<PluginRuntime["channel"]["slack"]>("Slack"),
+    telegram: createUnsupportedChannelRuntime<PluginRuntime["channel"]["telegram"]>("Telegram"),
+    signal: createUnsupportedChannelRuntime<PluginRuntime["channel"]["signal"]>("Signal"),
+    imessage: createUnsupportedChannelRuntime<PluginRuntime["channel"]["imessage"]>("iMessage"),
     whatsapp: createRuntimeWhatsApp(),
-    line: {
-      listLineAccountIds,
-      resolveDefaultLineAccountId,
-      resolveLineAccount,
-      normalizeAccountId: normalizeLineAccountId,
-      probeLineBot,
-      sendMessageLine,
-      pushMessageLine,
-      pushMessagesLine,
-      pushFlexMessage,
-      pushTemplateMessage,
-      pushLocationMessage,
-      pushTextMessageWithQuickReplies,
-      createQuickReplyItems,
-      buildTemplateMessageFromPayload,
-      monitorLineProvider,
-    },
+    line: createUnavailableLineRuntime(),
   };
 }
