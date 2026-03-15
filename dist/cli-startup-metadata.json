@@ -1,0 +1,13 @@
+{
+  "generatedBy": "scripts/write-cli-startup-metadata.ts",
+  "channelOptions": [
+    "telegram",
+    "whatsapp",
+    "discord",
+    "irc",
+    "googlechat",
+    "slack",
+    "signal",
+    "imessage"
+  ]
+}

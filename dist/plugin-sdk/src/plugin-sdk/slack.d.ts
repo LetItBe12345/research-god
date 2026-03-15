@@ -1,0 +1,32 @@
+export type { OpenClawConfig } from "../config/config.js";
+export * from "./channel-plugin-common.js";
+import type { OpenClawConfig } from "../config/config.js";
+export type ResolvedSlackAccount = {
+    accountId: string;
+    config: Record<string, unknown>;
+    botToken?: string;
+    userToken?: string;
+    actions?: Record<string, unknown>;
+};
+export type InspectedSlackAccount = ResolvedSlackAccount & {
+    configured: boolean;
+};
+export declare function listSlackAccountIds(cfg: OpenClawConfig): string[];
+export declare function listEnabledSlackAccounts(cfg: OpenClawConfig): ResolvedSlackAccount[];
+export declare function resolveDefaultSlackAccountId(_cfg: OpenClawConfig): string;
+export declare function resolveSlackAccount(cfg: OpenClawConfig, accountId?: string | null): ResolvedSlackAccount;
+export declare function resolveSlackReplyToMode(): "off" | "first" | "all";
+export declare function isSlackInteractiveRepliesEnabled(): boolean;
+export declare function inspectSlackAccount(cfg: OpenClawConfig, accountId?: string | null): InspectedSlackAccount;
+export { projectCredentialSnapshotFields, resolveConfiguredFromCredentialStatuses, resolveConfiguredFromRequiredCredentialStatuses, } from "../channels/account-snapshot-fields.js";
+export { listSlackDirectoryGroupsFromConfig, listSlackDirectoryPeersFromConfig, } from "../channels/plugins/directory-config.js";
+export { looksLikeSlackTargetId, normalizeSlackMessagingTarget, } from "../channels/plugins/normalize/slack.js";
+export declare function extractSlackToolSend(_args: Record<string, unknown>): undefined;
+export declare function listSlackMessageActions(): string[];
+export declare function buildSlackThreadingToolContext(): undefined;
+export { buildComputedAccountStatusSnapshot } from "./status-helpers.js";
+export { resolveDefaultGroupPolicy, resolveOpenProviderRuntimeGroupPolicy, } from "../config/runtime-group-policy.js";
+export { resolveSlackGroupRequireMention, resolveSlackGroupToolPolicy, } from "../channels/plugins/group-mentions.js";
+export { slackOnboardingAdapter } from "../channels/plugins/onboarding/slack.js";
+export { SlackConfigSchema } from "../config/zod-schema.providers-core.js";
+export { handleSlackMessageAction } from "./slack-message-actions.js";

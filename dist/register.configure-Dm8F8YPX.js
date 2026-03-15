@@ -1,0 +1,77 @@
+import { f as defaultRuntime, k as theme } from "./subsystem-C1ZwgyXv.js";
+import "./paths-dQ_clcF4.js";
+import "./boolean-BHdNsbzF.js";
+import "./auth-profiles-DZ4zIQH4.js";
+import "./agent-scope-lHks6gb9.js";
+import "./utils-D0Yqqtk-.js";
+import "./boundary-file-read-Dra285K5.js";
+import "./exec-BMx4PoTI.js";
+import "./github-copilot-token-Dmorf6Ne.js";
+import "./skills-NeRNNbEl.js";
+import "./frontmatter-BzGWVIyf.js";
+import "./env-overrides-D54I1R12.js";
+import "./version-Yn0NaOik.js";
+import "./search-manager-Cs4X-3T9.js";
+import "./query-expansion-C-xoIovu.js";
+import "./redact-Dc1bGBfo.js";
+import "./errors-BIQILtBT.js";
+import "./path-alias-guards-DpKou6ZY.js";
+import "./cmd-argv-DN-N1T_K.js";
+import "./restart-stale-pids-C-OA8Ze0.js";
+import "./delivery-queue-DCXFvPmD.js";
+import "./paths-CmL1n6G7.js";
+import "./session-cost-usage-Zj7Y3VA9.js";
+import { t as formatDocsLink } from "./links-BmJbo-zG.js";
+import { n as runCommandWithRuntime } from "./cli-utils-Cc7goTOv.js";
+import "./provider-env-vars-CUqWnuWU.js";
+import "./issue-format-C8GXLHk1.js";
+import "./daemon-install-plan.shared-Cp3Ohrwt.js";
+import "./runtime-guard-J6FFyZo2.js";
+import "./gateway-install-token-DhQTmVZ8.js";
+import "./onboard-helpers-4CUqO3j0.js";
+import "./prompt-style-B3R7Bffy.js";
+import "./runtime-parse-pVlvZ5Tt.js";
+import "./launchd-BYHD2rMv.js";
+import "./service-B9uQ0VXf.js";
+import "./systemd-BJIjjTO2.js";
+import "./widearea-dns-BYHs7olW.js";
+import "./bonjour-discovery-BDO52jmA.js";
+import "./health-BIaLfF-x.js";
+import "./control-ui-assets-lWSG1DR8.js";
+import "./skill-scanner-B6JKo5Zj.js";
+import "./archive-nC1xtUAK.js";
+import "./install-target-CJO4Zybf.js";
+import "./provider-auth-helpers-CIILB8Ym.js";
+import "./logging-D3TCKWkc.js";
+import "./openai-codex-oauth-BoDqUlFi.js";
+import "./note-QL6AfaP7.js";
+import "./clack-prompter-BsorKzB7.js";
+import "./auth-token-Cjub2Rkc.js";
+import "./oauth-tls-preflight-BtOhpKur.js";
+import "./installs-BqV3H267.js";
+import "./enable-B88Ork4A.js";
+import "./plugin-install-plan-CyuhOAX5.js";
+import "./provider-wizard-Di6BkcUS.js";
+import "./auth-choice-options-DzHF1BVn.js";
+import "./auth-choice-prompt-BPQ7963E.js";
+import "./auth-choice.apply-helpers-CM2lPq_z.js";
+import "./auth-choice-BEVaOqGl.js";
+import "./auth-choice.preferred-provider-jkI_HH5W.js";
+import "./model-picker-CrA5EoZa.js";
+import "./onboard-channels-C5CP-SM6.js";
+import "./onboarding.secret-input-HKQkvYKv.js";
+import "./systemd-linger-F1RJTY3g.js";
+import "./onboard-custom-DC3Sqwyp.js";
+import "./ipv4-CTvJVcrf.js";
+import "./health-format-BPdO9h6y.js";
+import { configureCommandFromSectionsArg, t as CONFIGURE_WIZARD_SECTIONS } from "./configure-DZ66_don.js";
+//#region src/cli/program/register.configure.ts
+function registerConfigureCommand(program) {
+	program.command("configure").description("Interactive setup wizard for credentials, channels, gateway, and agent defaults").addHelpText("after", () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/configure", "docs.openclaw.ai/cli/configure")}\n`).option("--section <section>", `Configuration sections (repeatable). Options: ${CONFIGURE_WIZARD_SECTIONS.join(", ")}`, (value, previous) => [...previous, value], []).action(async (opts) => {
+		await runCommandWithRuntime(defaultRuntime, async () => {
+			await configureCommandFromSectionsArg(opts.section, defaultRuntime);
+		});
+	});
+}
+//#endregion
+export { registerConfigureCommand };
