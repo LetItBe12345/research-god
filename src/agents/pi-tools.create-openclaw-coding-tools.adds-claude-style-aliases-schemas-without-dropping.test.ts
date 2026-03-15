@@ -161,66 +161,6 @@ describe("createOpenClawCodingTools", () => {
     const browser = createBrowserTool();
     expect(browser.description).toMatch(/profile="user"/i);
   });
-  it("keeps browser tool schema properties after normalization", () => {
-    const browser = defaultTools.find((tool) => tool.name === "browser");
-    expect(browser).toBeDefined();
-    const parameters = browser?.parameters as {
-      anyOf?: unknown[];
-      properties?: Record<string, unknown>;
-      required?: string[];
-    };
-    expect(parameters.properties?.action).toBeDefined();
-    expect(parameters.properties?.target).toBeDefined();
-    expect(parameters.properties?.targetUrl).toBeDefined();
-    expect(parameters.properties?.request).toBeDefined();
-    expect(parameters.required ?? []).toContain("action");
-  });
-  it("exposes raw for gateway config.apply tool calls", () => {
-    const gateway = createOpenClawCodingTools({ senderIsOwner: true }).find(
-      (tool) => tool.name === "gateway",
-    );
-    expect(gateway).toBeDefined();
-
-    const parameters = gateway?.parameters as {
-      type?: unknown;
-      required?: string[];
-      properties?: Record<string, unknown>;
-    };
-    expect(parameters.type).toBe("object");
-    expect(parameters.properties?.raw).toBeDefined();
-    expect(parameters.required ?? []).not.toContain("raw");
-  });
-  it("flattens anyOf-of-literals to enum for provider compatibility", () => {
-    const browser = defaultTools.find((tool) => tool.name === "browser");
-    expect(browser).toBeDefined();
-
-    const parameters = browser?.parameters as {
-      properties?: Record<string, unknown>;
-    };
-    const action = parameters.properties?.action as
-      | {
-          type?: unknown;
-          enum?: unknown[];
-          anyOf?: unknown[];
-        }
-      | undefined;
-
-    expect(action?.type).toBe("string");
-    expect(action?.anyOf).toBeUndefined();
-    expect(Array.isArray(action?.enum)).toBe(true);
-    expect(action?.enum).toContain("act");
-
-    const snapshotFormat = parameters.properties?.snapshotFormat as
-      | {
-          type?: unknown;
-          enum?: unknown[];
-          anyOf?: unknown[];
-        }
-      | undefined;
-    expect(snapshotFormat?.type).toBe("string");
-    expect(snapshotFormat?.anyOf).toBeUndefined();
-    expect(snapshotFormat?.enum).toEqual(["aria", "ai"]);
-  });
   it("inlines local $ref before removing unsupported keywords", () => {
     const cleaned = __testing.cleanToolSchemaForGemini({
       type: "object",
@@ -294,20 +234,13 @@ describe("createOpenClawCodingTools", () => {
   it("keeps raw core tool schemas union-free", () => {
     const tools = createOpenClawTools();
     const coreTools = new Set([
-      "browser",
-      "canvas",
-      "nodes",
       "cron",
-      "message",
-      "gateway",
-      "agents_list",
       "sessions_list",
       "sessions_history",
       "sessions_send",
       "sessions_spawn",
       "subagents",
       "session_status",
-      "image",
     ]);
     expect(findUnionKeywordOffenders(tools, { onlyNames: coreTools })).toEqual([]);
   });
@@ -328,8 +261,7 @@ describe("createOpenClawCodingTools", () => {
     expect(names.has("sessions_history")).toBe(false);
     expect(names.has("sessions_send")).toBe(false);
     expect(names.has("sessions_spawn")).toBe(false);
-    // Explicit subagent orchestration tool remains available (list/steer/kill with safeguards).
-    expect(names.has("subagents")).toBe(true);
+    expect(names.has("subagents")).toBe(false);
 
     expect(names.has("read")).toBe(true);
     expect(names.has("exec")).toBe(true);
@@ -376,7 +308,7 @@ describe("createOpenClawCodingTools", () => {
     expect(names.has("sessions_spawn")).toBe(false);
     expect(names.has("sessions_list")).toBe(false);
     expect(names.has("sessions_history")).toBe(false);
-    expect(names.has("subagents")).toBe(true);
+    expect(names.has("subagents")).toBe(false);
   });
   it("supports allow-only sub-agent tool policy", () => {
     const tools = createOpenClawCodingTools({
@@ -401,11 +333,11 @@ describe("createOpenClawCodingTools", () => {
       config: { tools: { profile: "messaging" } },
     });
     const names = new Set(tools.map((tool) => tool.name));
-    expect(names.has("message")).toBe(true);
+    expect(names.has("sessions_list")).toBe(true);
     expect(names.has("sessions_send")).toBe(true);
     expect(names.has("sessions_spawn")).toBe(false);
     expect(names.has("exec")).toBe(false);
-    expect(names.has("browser")).toBe(false);
+    expect(names.has("cron")).toBe(false);
   });
   it("expands group shorthands in global tool policy", () => {
     const tools = createOpenClawCodingTools({
@@ -439,7 +371,8 @@ describe("createOpenClawCodingTools", () => {
       },
     });
     const names = new Set(tools.map((tool) => tool.name));
-    expect(names.has("message")).toBe(true);
+    expect(names.has("sessions_send")).toBe(true);
+    expect(names.has("sessions_list")).toBe(true);
     expect(names.has("exec")).toBe(false);
     expect(names.has("read")).toBe(false);
   });
