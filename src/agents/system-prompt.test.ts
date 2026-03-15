@@ -492,14 +492,14 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/openclaw",
       contextFiles: [
         { path: "AGENTS.md", content: "Alpha" },
-        { path: "IDENTITY.md", content: "Bravo" },
+        { path: "HEARTBEAT.md", content: "Bravo" },
       ],
     });
 
     expect(prompt).toContain("# Project Context");
     expect(prompt).toContain("## AGENTS.md");
     expect(prompt).toContain("Alpha");
-    expect(prompt).toContain("## IDENTITY.md");
+    expect(prompt).toContain("## HEARTBEAT.md");
     expect(prompt).toContain("Bravo");
   });
 
@@ -520,18 +520,13 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("Blank path");
   });
 
-  it("adds SOUL guidance when a soul file is present", () => {
+  it("describes the reduced workspace injection set", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
-      contextFiles: [
-        { path: "./SOUL.md", content: "Persona" },
-        { path: "dir\\SOUL.md", content: "Persona Windows" },
-      ],
+      contextFiles: [{ path: "AGENTS.md", content: "Persona" }],
     });
 
-    expect(prompt).toContain(
-      "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
-    );
+    expect(prompt).toContain("OpenClaw only auto-loads AGENTS.md and HEARTBEAT.md");
   });
 
   it("renders bootstrap truncation warning even when no context files are injected", () => {
