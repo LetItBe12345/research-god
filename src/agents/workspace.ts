@@ -194,15 +194,6 @@ async function writeFileIfMissing(filePath: string, content: string): Promise<bo
   }
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function resolveWorkspaceStatePath(dir: string): string {
   return path.join(dir, WORKSPACE_STATE_DIRNAME, WORKSPACE_STATE_FILENAME);
 }
@@ -349,7 +340,7 @@ export async function ensureAgentWorkspace(params?: {
   const statePath = resolveWorkspaceStatePath(dir);
 
   const isBrandNewWorkspace = await (async () => {
-    const templatePaths = [agentsPath, soulPath, toolsPath, identityPath, userPath, heartbeatPath];
+    const templatePaths = [agentsPath, heartbeatPath];
     const userContentPaths = [
       path.join(dir, "memory"),
       path.join(dir, DEFAULT_MEMORY_FILENAME),
@@ -370,16 +361,8 @@ export async function ensureAgentWorkspace(params?: {
   })();
 
   const agentsTemplate = await loadTemplate(DEFAULT_AGENTS_FILENAME);
-  const soulTemplate = await loadTemplate(DEFAULT_SOUL_FILENAME);
-  const toolsTemplate = await loadTemplate(DEFAULT_TOOLS_FILENAME);
-  const identityTemplate = await loadTemplate(DEFAULT_IDENTITY_FILENAME);
-  const userTemplate = await loadTemplate(DEFAULT_USER_FILENAME);
   const heartbeatTemplate = await loadTemplate(DEFAULT_HEARTBEAT_FILENAME);
   await writeFileIfMissing(agentsPath, agentsTemplate);
-  await writeFileIfMissing(soulPath, soulTemplate);
-  await writeFileIfMissing(toolsPath, toolsTemplate);
-  await writeFileIfMissing(identityPath, identityTemplate);
-  await writeFileIfMissing(userPath, userTemplate);
   await writeFileIfMissing(heartbeatPath, heartbeatTemplate);
 
   let state = await readWorkspaceOnboardingState(statePath);
@@ -390,55 +373,8 @@ export async function ensureAgentWorkspace(params?: {
   };
   const nowIso = () => new Date().toISOString();
 
-  let bootstrapExists = await fileExists(bootstrapPath);
-  if (!state.bootstrapSeededAt && bootstrapExists) {
-    markState({ bootstrapSeededAt: nowIso() });
-  }
-
-  if (!state.onboardingCompletedAt && state.bootstrapSeededAt && !bootstrapExists) {
+  if (!state.onboardingCompletedAt) {
     markState({ onboardingCompletedAt: nowIso() });
-  }
-
-  if (!state.bootstrapSeededAt && !state.onboardingCompletedAt && !bootstrapExists) {
-    // Legacy migration path: if USER/IDENTITY diverged from templates, or if user-content
-    // indicators exist, treat onboarding as complete and avoid recreating BOOTSTRAP for
-    // already-onboarded workspaces.
-    const [identityContent, userContent] = await Promise.all([
-      fs.readFile(identityPath, "utf-8"),
-      fs.readFile(userPath, "utf-8"),
-    ]);
-    const hasUserContent = await (async () => {
-      const indicators = [
-        path.join(dir, "memory"),
-        path.join(dir, DEFAULT_MEMORY_FILENAME),
-        path.join(dir, ".git"),
-      ];
-      for (const indicator of indicators) {
-        try {
-          await fs.access(indicator);
-          return true;
-        } catch {
-          // continue
-        }
-      }
-      return false;
-    })();
-    const legacyOnboardingCompleted =
-      identityContent !== identityTemplate || userContent !== userTemplate || hasUserContent;
-    if (legacyOnboardingCompleted) {
-      markState({ onboardingCompletedAt: nowIso() });
-    } else {
-      const bootstrapTemplate = await loadTemplate(DEFAULT_BOOTSTRAP_FILENAME);
-      const wroteBootstrap = await writeFileIfMissing(bootstrapPath, bootstrapTemplate);
-      if (!wroteBootstrap) {
-        bootstrapExists = await fileExists(bootstrapPath);
-      } else {
-        bootstrapExists = true;
-      }
-      if (bootstrapExists && !state.bootstrapSeededAt) {
-        markState({ bootstrapSeededAt: nowIso() });
-      }
-    }
   }
 
   if (stateDirty) {
@@ -458,26 +394,6 @@ export async function ensureAgentWorkspace(params?: {
   };
 }
 
-async function resolveMemoryBootstrapEntry(
-  resolvedDir: string,
-): Promise<{ name: WorkspaceBootstrapFileName; filePath: string } | null> {
-  // Prefer MEMORY.md; fall back to memory.md only when absent.
-  // Checking both and deduplicating via realpath is unreliable on case-insensitive
-  // file systems mounted in Docker (e.g. macOS volumes), where both names pass
-  // fs.access() but realpath does not normalise case through the mount layer,
-  // causing the same content to be injected twice and wasting tokens.
-  for (const name of [DEFAULT_MEMORY_FILENAME, DEFAULT_MEMORY_ALT_FILENAME] as const) {
-    const filePath = path.join(resolvedDir, name);
-    try {
-      await fs.access(filePath);
-      return { name, filePath };
-    } catch {
-      // try next candidate
-    }
-  }
-  return null;
-}
-
 export async function loadWorkspaceBootstrapFiles(dir: string): Promise<WorkspaceBootstrapFile[]> {
   const resolvedDir = resolveUserPath(dir);
 
@@ -490,35 +406,10 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
       filePath: path.join(resolvedDir, DEFAULT_AGENTS_FILENAME),
     },
     {
-      name: DEFAULT_SOUL_FILENAME,
-      filePath: path.join(resolvedDir, DEFAULT_SOUL_FILENAME),
-    },
-    {
-      name: DEFAULT_TOOLS_FILENAME,
-      filePath: path.join(resolvedDir, DEFAULT_TOOLS_FILENAME),
-    },
-    {
-      name: DEFAULT_IDENTITY_FILENAME,
-      filePath: path.join(resolvedDir, DEFAULT_IDENTITY_FILENAME),
-    },
-    {
-      name: DEFAULT_USER_FILENAME,
-      filePath: path.join(resolvedDir, DEFAULT_USER_FILENAME),
-    },
-    {
       name: DEFAULT_HEARTBEAT_FILENAME,
       filePath: path.join(resolvedDir, DEFAULT_HEARTBEAT_FILENAME),
     },
-    {
-      name: DEFAULT_BOOTSTRAP_FILENAME,
-      filePath: path.join(resolvedDir, DEFAULT_BOOTSTRAP_FILENAME),
-    },
   ];
-
-  const memoryEntry = await resolveMemoryBootstrapEntry(resolvedDir);
-  if (memoryEntry) {
-    entries.push(memoryEntry);
-  }
 
   const result: WorkspaceBootstrapFile[] = [];
   for (const entry of entries) {
@@ -540,13 +431,7 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
   return result;
 }
 
-const MINIMAL_BOOTSTRAP_ALLOWLIST = new Set([
-  DEFAULT_AGENTS_FILENAME,
-  DEFAULT_TOOLS_FILENAME,
-  DEFAULT_SOUL_FILENAME,
-  DEFAULT_IDENTITY_FILENAME,
-  DEFAULT_USER_FILENAME,
-]);
+const MINIMAL_BOOTSTRAP_ALLOWLIST = new Set([DEFAULT_AGENTS_FILENAME, DEFAULT_HEARTBEAT_FILENAME]);
 
 export function filterBootstrapFilesForSession(
   files: WorkspaceBootstrapFile[],

@@ -1,0 +1,493 @@
+[
+  {
+    "name": "read",
+    "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+    "parameters": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "path": {
+          "description": "Path to the file to read (relative or absolute)",
+          "type": "string"
+        },
+        "offset": {
+          "description": "Line number to start reading from (1-indexed)",
+          "type": "number"
+        },
+        "limit": {
+          "description": "Maximum number of lines to read",
+          "type": "number"
+        },
+        "file_path": {
+          "description": "Path to the file to read (relative or absolute)",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "edit",
+    "description": "Edit a file by replacing exact text. The oldText must match exactly (including whitespace). Use this for precise, surgical edits.",
+    "parameters": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "path": {
+          "description": "Path to the file to edit (relative or absolute)",
+          "type": "string"
+        },
+        "oldText": {
+          "description": "Exact text to find and replace (must match exactly)",
+          "type": "string"
+        },
+        "newText": {
+          "description": "New text to replace the old text with",
+          "type": "string"
+        },
+        "file_path": {
+          "description": "Path to the file to edit (relative or absolute)",
+          "type": "string"
+        },
+        "old_string": {
+          "description": "Exact text to find and replace (must match exactly)",
+          "type": "string"
+        },
+        "new_string": {
+          "description": "New text to replace the old text with",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "write",
+    "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+    "parameters": {
+      "type": "object",
+      "required": ["content"],
+      "properties": {
+        "path": {
+          "description": "Path to the file to write (relative or absolute)",
+          "type": "string"
+        },
+        "content": {
+          "description": "Content to write to the file",
+          "type": "string"
+        },
+        "file_path": {
+          "description": "Path to the file to write (relative or absolute)",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "exec",
+    "description": "Execute shell commands with background continuation. Use yieldMs/background to continue later via process tool. Use pty=true for TTY-required commands (terminal UIs, coding agents).",
+    "parameters": {
+      "type": "object",
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "description": "Shell command to execute",
+          "type": "string"
+        },
+        "workdir": {
+          "description": "Working directory (defaults to cwd)",
+          "type": "string"
+        },
+        "env": {
+          "type": "object",
+          "patternProperties": {
+            "^(.*)$": {
+              "type": "string"
+            }
+          }
+        },
+        "yieldMs": {
+          "description": "Milliseconds to wait before backgrounding (default 10000)",
+          "type": "number"
+        },
+        "background": {
+          "description": "Run in background immediately",
+          "type": "boolean"
+        },
+        "timeout": {
+          "description": "Timeout in seconds (optional, kills process on expiry)",
+          "type": "number"
+        },
+        "pty": {
+          "description": "Run in a pseudo-terminal (PTY) when available (TTY-required CLIs, coding agents)",
+          "type": "boolean"
+        },
+        "elevated": {
+          "description": "Run on the host with elevated permissions (if allowed)",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "Exec host (sandbox|gateway|node).",
+          "type": "string"
+        },
+        "security": {
+          "description": "Exec security mode (deny|allowlist|full).",
+          "type": "string"
+        },
+        "ask": {
+          "description": "Exec ask mode (off|on-miss|always).",
+          "type": "string"
+        },
+        "node": {
+          "description": "Node id/name for host=node.",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "process",
+    "description": "Manage running exec sessions: list, poll, log, write, send-keys, submit, paste, kill.",
+    "parameters": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "description": "Process action",
+          "type": "string"
+        },
+        "sessionId": {
+          "description": "Session id for actions other than list",
+          "type": "string"
+        },
+        "data": {
+          "description": "Data to write for write",
+          "type": "string"
+        },
+        "keys": {
+          "description": "Key tokens to send for send-keys",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hex": {
+          "description": "Hex bytes to send for send-keys",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "literal": {
+          "description": "Literal string for send-keys",
+          "type": "string"
+        },
+        "text": {
+          "description": "Text to paste for paste",
+          "type": "string"
+        },
+        "bracketed": {
+          "description": "Wrap paste in bracketed mode",
+          "type": "boolean"
+        },
+        "eof": {
+          "description": "Close stdin after write",
+          "type": "boolean"
+        },
+        "offset": {
+          "description": "Log offset",
+          "type": "number"
+        },
+        "limit": {
+          "description": "Log length",
+          "type": "number"
+        },
+        "timeout": {
+          "description": "For poll: wait up to this many milliseconds before returning",
+          "minimum": 0,
+          "type": "number"
+        }
+      }
+    }
+  },
+  {
+    "name": "sessions_list",
+    "description": "List sessions with optional filters and last messages.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limit": {
+          "minimum": 1,
+          "type": "number"
+        },
+        "activeMinutes": {
+          "minimum": 1,
+          "type": "number"
+        },
+        "messageLimit": {
+          "minimum": 0,
+          "type": "number"
+        }
+      }
+    }
+  },
+  {
+    "name": "sessions_history",
+    "description": "Fetch message history for a session.",
+    "parameters": {
+      "type": "object",
+      "required": ["sessionKey"],
+      "properties": {
+        "sessionKey": {
+          "type": "string"
+        },
+        "limit": {
+          "minimum": 1,
+          "type": "number"
+        },
+        "includeTools": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "sessions_send",
+    "description": "Send a message into another session. Use sessionKey or label to identify the target.",
+    "parameters": {
+      "type": "object",
+      "required": ["message"],
+      "properties": {
+        "sessionKey": {
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "maxLength": 64,
+          "type": "string"
+        },
+        "agentId": {
+          "minLength": 1,
+          "maxLength": 64,
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timeoutSeconds": {
+          "minimum": 0,
+          "type": "number"
+        }
+      }
+    }
+  },
+  {
+    "name": "sessions_spawn",
+    "description": "Spawn an isolated session (runtime=\"subagent\" or runtime=\"acp\"). mode=\"run\" is one-shot and mode=\"session\" is persistent/thread-bound. Subagents inherit the parent workspace directory automatically.",
+    "parameters": {
+      "type": "object",
+      "required": ["task"],
+      "properties": {
+        "task": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string",
+          "enum": ["subagent", "acp"]
+        },
+        "agentId": {
+          "type": "string"
+        },
+        "resumeSessionId": {
+          "description": "Resume an existing agent session by its ID (e.g. a Codex session UUID from ~/.codex/sessions/). Requires runtime=\"acp\". The agent replays conversation history via session/load instead of starting fresh.",
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "thinking": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "runTimeoutSeconds": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "timeoutSeconds": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "thread": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["run", "session"]
+        },
+        "cleanup": {
+          "type": "string",
+          "enum": ["delete", "keep"]
+        },
+        "sandbox": {
+          "type": "string",
+          "enum": ["inherit", "require"]
+        },
+        "streamTo": {
+          "type": "string",
+          "enum": ["parent"]
+        },
+        "attachments": {
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "content"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "encoding": {
+                "type": "string",
+                "enum": ["utf8", "base64"]
+              },
+              "mimeType": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "attachAs": {
+          "type": "object",
+          "properties": {
+            "mountPath": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "subagents",
+    "description": "List, kill, or steer spawned sub-agents for this requester session. Use this for sub-agent orchestration.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["list", "kill", "steer"]
+        },
+        "target": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "recentMinutes": {
+          "minimum": 1,
+          "type": "number"
+        }
+      }
+    }
+  },
+  {
+    "name": "session_status",
+    "description": "Show a /status-equivalent session status card (usage + time + cost when available). Use for model-use questions (📊 session_status). Optional: set per-session model override (model=default resets overrides).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sessionKey": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "web_search",
+    "description": "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.",
+    "parameters": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {
+          "description": "Search query string.",
+          "type": "string"
+        },
+        "count": {
+          "description": "Number of results to return (1-10).",
+          "minimum": 1,
+          "maximum": 10,
+          "type": "number"
+        },
+        "country": {
+          "description": "2-letter country code for region-specific results (e.g., 'DE', 'US', 'ALL'). Default: 'US'.",
+          "type": "string"
+        },
+        "language": {
+          "description": "ISO 639-1 language code for results (e.g., 'en', 'de', 'fr').",
+          "type": "string"
+        },
+        "freshness": {
+          "description": "Filter by time: 'day' (24h), 'week', 'month', or 'year'.",
+          "type": "string"
+        },
+        "date_after": {
+          "description": "Only results published after this date (YYYY-MM-DD).",
+          "type": "string"
+        },
+        "date_before": {
+          "description": "Only results published before this date (YYYY-MM-DD).",
+          "type": "string"
+        },
+        "search_lang": {
+          "description": "Brave language code for search results (e.g., 'en', 'de', 'en-gb', 'zh-hans', 'zh-hant', 'pt-br').",
+          "type": "string"
+        },
+        "ui_lang": {
+          "description": "Locale code for UI elements in language-region format (e.g., 'en-US', 'de-DE', 'fr-FR', 'tr-TR'). Must include region subtag.",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "name": "web_fetch",
+    "description": "Fetch and extract readable content from a URL (HTML → markdown/text). Use for lightweight page access without browser automation.",
+    "parameters": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "description": "HTTP or HTTPS URL to fetch.",
+          "type": "string"
+        },
+        "extractMode": {
+          "type": "string",
+          "enum": ["markdown", "text"],
+          "description": "Extraction mode (\"markdown\" or \"text\").",
+          "default": "markdown"
+        },
+        "maxChars": {
+          "description": "Maximum characters to return (truncates when exceeded).",
+          "minimum": 100,
+          "type": "number"
+        }
+      }
+    }
+  }
+]
