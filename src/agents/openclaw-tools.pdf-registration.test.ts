@@ -16,7 +16,7 @@ async function withTempAgentDir<T>(run: (agentDir: string) => Promise<T>): Promi
 }
 
 describe("createOpenClawTools PDF registration", () => {
-  it("includes pdf tool when pdfModel is configured", async () => {
+  it("does not include pdf tool even when pdfModel is configured", async () => {
     await withTempAgentDir(async (agentDir) => {
       const cfg: OpenClawConfig = {
         agents: {
@@ -27,7 +27,7 @@ describe("createOpenClawTools PDF registration", () => {
       };
 
       const tools = createOpenClawTools({ config: cfg, agentDir });
-      expect(tools.some((tool) => tool.name === "pdf")).toBe(true);
+      expect(tools.some((tool) => tool.name === "pdf")).toBe(false);
     });
   });
 });

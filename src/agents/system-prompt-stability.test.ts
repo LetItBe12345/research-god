@@ -3,8 +3,7 @@ import { makeTempWorkspace, writeWorkspaceFile } from "../test-helpers/workspace
 import {
   loadWorkspaceBootstrapFiles,
   DEFAULT_AGENTS_FILENAME,
-  DEFAULT_TOOLS_FILENAME,
-  DEFAULT_SOUL_FILENAME,
+  DEFAULT_HEARTBEAT_FILENAME,
 } from "./workspace.js";
 
 describe("system prompt stability for cache hits", () => {
@@ -16,8 +15,7 @@ describe("system prompt stability for cache hits", () => {
 
   it("returns identical results for same inputs across multiple calls", async () => {
     const agentsContent = "# AGENTS.md - Your Workspace\n\nTest agents file.";
-    const toolsContent = "# TOOLS.md - Local Notes\n\nTest tools file.";
-    const soulContent = "# SOUL.md - Who You Are\n\nTest soul file.";
+    const heartbeatContent = "# HEARTBEAT.md\n\nTest heartbeat file.";
 
     // Write workspace files
     await writeWorkspaceFile({
@@ -27,13 +25,8 @@ describe("system prompt stability for cache hits", () => {
     });
     await writeWorkspaceFile({
       dir: workspaceDir,
-      name: DEFAULT_TOOLS_FILENAME,
-      content: toolsContent,
-    });
-    await writeWorkspaceFile({
-      dir: workspaceDir,
-      name: DEFAULT_SOUL_FILENAME,
-      content: soulContent,
+      name: DEFAULT_HEARTBEAT_FILENAME,
+      content: heartbeatContent,
     });
 
     // Load the same workspace multiple times
@@ -54,29 +47,25 @@ describe("system prompt stability for cache hits", () => {
     const agentsFiles = results.map((result) =>
       result.find((f) => f.name === DEFAULT_AGENTS_FILENAME),
     );
-    const toolsFiles = results.map((result) =>
-      result.find((f) => f.name === DEFAULT_TOOLS_FILENAME),
+    const heartbeatFiles = results.map((result) =>
+      result.find((f) => f.name === DEFAULT_HEARTBEAT_FILENAME),
     );
-    const soulFiles = results.map((result) => result.find((f) => f.name === DEFAULT_SOUL_FILENAME));
 
     // All instances should have identical content
     for (let i = 1; i < agentsFiles.length; i++) {
       expect(agentsFiles[i]?.content).toBe(agentsFiles[0]?.content);
-      expect(toolsFiles[i]?.content).toBe(toolsFiles[0]?.content);
-      expect(soulFiles[i]?.content).toBe(soulFiles[0]?.content);
+      expect(heartbeatFiles[i]?.content).toBe(heartbeatFiles[0]?.content);
     }
 
     // Verify the actual content matches what we wrote
     expect(agentsFiles[0]?.content).toBe(agentsContent);
-    expect(toolsFiles[0]?.content).toBe(toolsContent);
-    expect(soulFiles[0]?.content).toBe(soulContent);
+    expect(heartbeatFiles[0]?.content).toBe(heartbeatContent);
   });
 
   it("returns consistent ordering across calls", async () => {
     const testFiles = [
       { name: DEFAULT_AGENTS_FILENAME, content: "# Agents content" },
-      { name: DEFAULT_TOOLS_FILENAME, content: "# Tools content" },
-      { name: DEFAULT_SOUL_FILENAME, content: "# Soul content" },
+      { name: DEFAULT_HEARTBEAT_FILENAME, content: "# Heartbeat content" },
     ];
 
     // Write all test files
@@ -122,12 +111,12 @@ describe("system prompt stability for cache hits", () => {
     // Verify missing files are consistently marked as missing
     for (const result of results) {
       const agentsFile = result.find((f) => f.name === DEFAULT_AGENTS_FILENAME);
-      const toolsFile = result.find((f) => f.name === DEFAULT_TOOLS_FILENAME);
+      const heartbeatFile = result.find((f) => f.name === DEFAULT_HEARTBEAT_FILENAME);
 
       expect(agentsFile?.missing).toBe(false);
       expect(agentsFile?.content).toBe("# Agents only");
-      expect(toolsFile?.missing).toBe(true);
-      expect(toolsFile?.content).toBeUndefined();
+      expect(heartbeatFile?.missing).toBe(true);
+      expect(heartbeatFile?.content).toBeUndefined();
     }
   });
 

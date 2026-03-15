@@ -10,13 +10,12 @@ describe("createOpenClawTools owner authorization", () => {
   it("marks owner-only core tools in raw registration", () => {
     const tools = readToolByName();
     expect(tools.get("cron")?.ownerOnly).toBe(true);
-    expect(tools.get("gateway")?.ownerOnly).toBe(true);
-    expect(tools.get("nodes")?.ownerOnly).toBe(true);
   });
 
-  it("keeps canvas non-owner-only in raw registration", () => {
+  it("does not register removed non-secretary tools", () => {
     const tools = readToolByName();
-    expect(tools.get("canvas")).toBeDefined();
-    expect(tools.get("canvas")?.ownerOnly).not.toBe(true);
+    expect(tools.has("canvas")).toBe(false);
+    expect(tools.has("gateway")).toBe(false);
+    expect(tools.has("nodes")).toBe(false);
   });
 });
