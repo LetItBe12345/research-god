@@ -107,6 +107,73 @@ describe("runCliAgent with process supervisor", () => {
     expect(input.scopeKey).toContain("thread-123");
   });
 
+  it("injects the Claude Code executor prompt into the system prompt arg", async () => {
+    supervisorSpawnMock.mockResolvedValueOnce(
+      createManagedRun({
+        reason: "exit",
+        exitCode: 0,
+        exitSignal: null,
+        durationMs: 50,
+        stdout: "ok",
+        stderr: "",
+        timedOut: false,
+        noOutputTimedOut: false,
+      }),
+    );
+
+    await runCliAgent({
+      sessionId: "s-claude",
+      sessionFile: "/tmp/session.jsonl",
+      workspaceDir: "/tmp",
+      prompt: "fix the failing test",
+      provider: "claude-cli",
+      model: "opus",
+      timeoutMs: 1_000,
+      runId: "run-claude-prompt",
+    });
+
+    const input = supervisorSpawnMock.mock.calls[0]?.[0] as { argv?: string[] };
+    const argv = input.argv ?? [];
+    const promptIndex = argv.indexOf("--append-system-prompt");
+    expect(promptIndex).toBeGreaterThanOrEqual(0);
+    const systemPrompt = argv[promptIndex + 1] ?? "";
+    expect(systemPrompt).toContain("You are Claude Code running headless as an OpenClaw executor.");
+    expect(systemPrompt).toContain("Return only this exact 5-line report format:");
+  });
+
+  it("injects the Codex executor prompt into the task prompt", async () => {
+    supervisorSpawnMock.mockResolvedValueOnce(
+      createManagedRun({
+        reason: "exit",
+        exitCode: 0,
+        exitSignal: null,
+        durationMs: 50,
+        stdout: "ok",
+        stderr: "",
+        timedOut: false,
+        noOutputTimedOut: false,
+      }),
+    );
+
+    await runCliAgent({
+      sessionId: "s-codex",
+      sessionFile: "/tmp/session.jsonl",
+      workspaceDir: "/tmp",
+      prompt: "implement the next todo item",
+      provider: "codex-cli",
+      model: "gpt-5.2-codex",
+      timeoutMs: 1_000,
+      runId: "run-codex-prompt",
+    });
+
+    const input = supervisorSpawnMock.mock.calls[0]?.[0] as { argv?: string[] };
+    const argv = input.argv ?? [];
+    const promptArg = argv.at(-1) ?? "";
+    expect(promptArg).toContain("You are Codex running headless as an OpenClaw executor.");
+    expect(promptArg).toContain("STATUS: <done|blocked|failed>");
+    expect(promptArg).toContain("Task:\nimplement the next todo item");
+  });
+
   it("fails with timeout when no-output watchdog trips", async () => {
     supervisorSpawnMock.mockResolvedValueOnce(
       createManagedRun({

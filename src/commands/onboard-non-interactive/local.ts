@@ -130,7 +130,8 @@ export async function runNonInteractiveOnboardingLocal(params: {
   logConfigUpdated(runtime);
 
   await ensureWorkspaceAndSessions(workspaceDir, runtime, {
-    skipBootstrap: Boolean(nextConfig.agents?.defaults?.skipBootstrap),
+    // Non-interactive onboarding mirrors interactive onboarding: create dirs only.
+    skipBootstrap: true,
   });
 
   const daemonRuntimeRaw = opts.daemonRuntime ?? DEFAULT_GATEWAY_DAEMON_RUNTIME;
