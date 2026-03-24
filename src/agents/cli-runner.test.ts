@@ -138,7 +138,8 @@ describe("runCliAgent with process supervisor", () => {
     expect(promptIndex).toBeGreaterThanOrEqual(0);
     const systemPrompt = argv[promptIndex + 1] ?? "";
     expect(systemPrompt).toContain("You are Claude Code running headless as an OpenClaw executor.");
-    expect(systemPrompt).toContain("Return only this exact 5-line report format:");
+    expect(systemPrompt).toContain("Return only this exact 4-line report format:");
+    expect(systemPrompt).toContain("PLAN_UPDATE: <one sentence describing the plan.md update>");
   });
 
   it("injects the Codex executor prompt into the task prompt", async () => {
@@ -170,8 +171,45 @@ describe("runCliAgent with process supervisor", () => {
     const argv = input.argv ?? [];
     const promptArg = argv.at(-1) ?? "";
     expect(promptArg).toContain("You are Codex running headless as an OpenClaw executor.");
-    expect(promptArg).toContain("STATUS: <done|blocked|failed>");
+    expect(promptArg).toContain("RESULT: <done|blocked|failed>");
+    expect(promptArg).toContain("NEXT_HINT: <one short next-step hint>");
     expect(promptArg).toContain("Task:\nimplement the next todo item");
+  });
+
+  it("exposes raw stdout, stderr, and exit code when non-zero exits are allowed", async () => {
+    supervisorSpawnMock.mockResolvedValueOnce(
+      createManagedRun({
+        reason: "exit",
+        exitCode: 7,
+        exitSignal: null,
+        durationMs: 50,
+        stdout: "RESULT: failed\nSUMMARY: patch test failed\nPLAN_UPDATE: Logged failure in plan.md.\nNEXT_HINT: Inspect stderr.\n",
+        stderr: "node test.js failed",
+        timedOut: false,
+        noOutputTimedOut: false,
+      }),
+    );
+
+    const result = await runCliAgent({
+      sessionId: "s-nonzero",
+      sessionFile: "/tmp/session.jsonl",
+      workspaceDir: "/tmp",
+      prompt: "run failing task",
+      provider: "codex-cli",
+      model: "gpt-5.2-codex",
+      timeoutMs: 1_000,
+      runId: "run-nonzero",
+      allowNonZeroExit: true,
+    });
+
+    expect(result.meta.processResult).toEqual({
+      stdout:
+        "RESULT: failed\nSUMMARY: patch test failed\nPLAN_UPDATE: Logged failure in plan.md.\nNEXT_HINT: Inspect stderr.\n",
+      stderr: "node test.js failed",
+      exitCode: 7,
+      reason: "exit",
+    });
+    expect(result.payloads?.[0]?.text).toContain("RESULT: failed");
   });
 
   it("fails with timeout when no-output watchdog trips", async () => {

@@ -108,13 +108,21 @@ const coreEntries: CoreCliEntry[] = [
   {
     commands: [
       {
+        name: "research",
+        description: "Generate research reports and execution-ready specs",
+        hasSubcommands: true,
+      },
+    ],
+    register: async ({ program }) => {
+      const mod = await import("./register.research.js");
+      mod.registerResearchCommand(program);
+    },
+  },
+  {
+    commands: [
+      {
         name: "doctor",
         description: "Health checks + quick fixes for the gateway and channels",
-        hasSubcommands: false,
-      },
-      {
-        name: "dashboard",
-        description: "Open the Control UI with your current token",
         hasSubcommands: false,
       },
       {

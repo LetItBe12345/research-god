@@ -148,6 +148,37 @@ describe("ensureAgentWorkspace", () => {
 
     await expectCompletedWithoutBootstrap(tempDir);
   });
+
+  it("prunes legacy bootstrap files when requested for minimal workspaces", async () => {
+    const tempDir = await makeTempWorkspace("openclaw-workspace-");
+    await fs.writeFile(path.join(tempDir, "SOUL.md"), "legacy soul", "utf-8");
+    await fs.writeFile(path.join(tempDir, "TOOLS.md"), "legacy tools", "utf-8");
+    await fs.writeFile(path.join(tempDir, "IDENTITY.md"), "legacy identity", "utf-8");
+    await fs.writeFile(path.join(tempDir, "USER.md"), "legacy user", "utf-8");
+    await fs.writeFile(path.join(tempDir, DEFAULT_BOOTSTRAP_FILENAME), "legacy bootstrap", "utf-8");
+
+    await ensureAgentWorkspace({
+      dir: tempDir,
+      ensureBootstrapFiles: false,
+      pruneLegacyBootstrapFiles: true,
+    });
+
+    await expect(fs.access(path.join(tempDir, "SOUL.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.access(path.join(tempDir, "TOOLS.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(fs.access(path.join(tempDir, "IDENTITY.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(fs.access(path.join(tempDir, "USER.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(fs.access(path.join(tempDir, DEFAULT_BOOTSTRAP_FILENAME))).rejects.toMatchObject(
+      {
+        code: "ENOENT",
+      },
+    );
+  });
 });
 
 describe("loadWorkspaceBootstrapFiles", () => {

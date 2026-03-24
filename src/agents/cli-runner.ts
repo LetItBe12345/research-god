@@ -53,13 +53,14 @@ function buildClaudeCodeExecutorPrompt(): string {
     "You are Claude Code running headless as an OpenClaw executor.",
     "OpenClaw is the coordinator. Execute only the assigned task.",
     "Keep tool use autonomous and non-interactive.",
-    "Return only this exact 5-line report format:",
-    "STATUS: <done|blocked|failed>",
-    "TASK_ID: <id-or-none>",
+    "stdout is only the brief for this round. Do not use it as persistent state.",
+    "Update the current task's plan.md before you finish execution.",
+    "Return only this exact 4-line report format:",
+    "RESULT: <done|blocked|failed>",
     "SUMMARY: <one sentence, <= 12 words>",
-    "FILES: <comma-separated repo paths or none>",
-    "VERIFY: <one short verification line or not run>",
-    "Do not output any extra text before or after those 5 lines.",
+    "PLAN_UPDATE: <one sentence describing the plan.md update>",
+    "NEXT_HINT: <one short next-step hint>",
+    "Do not output any extra text before or after those 4 lines.",
   ].join("\n");
 }
 
@@ -68,13 +69,14 @@ function buildCodexExecutorPrompt(): string {
     "You are Codex running headless as an OpenClaw executor.",
     "OpenClaw is the coordinator. Execute only the assigned task.",
     "Work autonomously with maximum local permissions and no approval prompts.",
-    "Return only this exact 5-line report format:",
-    "STATUS: <done|blocked|failed>",
-    "TASK_ID: <id-or-none>",
+    "stdout is only the brief for this round. Do not use it as persistent state.",
+    "Update the current task's plan.md before you finish execution.",
+    "Return only this exact 4-line report format:",
+    "RESULT: <done|blocked|failed>",
     "SUMMARY: <one sentence, <= 12 words>",
-    "FILES: <comma-separated repo paths or none>",
-    "VERIFY: <one short verification line or not run>",
-    "Do not output any extra text before or after those 5 lines.",
+    "PLAN_UPDATE: <one sentence describing the plan.md update>",
+    "NEXT_HINT: <one short next-step hint>",
+    "Do not output any extra text before or after those 4 lines.",
   ].join("\n");
 }
 
@@ -109,6 +111,7 @@ export async function runCliAgent(params: {
   /** Backward-compat fallback when only the previous signature is available. */
   bootstrapPromptWarningSignature?: string;
   images?: ImageContent[];
+  allowNonZeroExit?: boolean;
 }): Promise<EmbeddedPiRunResult> {
   const started = Date.now();
   const workspaceResolution = resolveRunWorkspaceDir({
@@ -228,6 +231,10 @@ export async function runCliAgent(params: {
     cliSessionIdToUse?: string,
   ): Promise<{
     text: string;
+    rawStdout: string;
+    rawStderr: string;
+    exitCode: number | null;
+    reason: string;
     sessionId?: string;
     usage?: {
       input?: number;
@@ -416,6 +423,16 @@ export async function runCliAgent(params: {
               status: resolveFailoverStatus("timeout"),
             });
           }
+          if (params.allowNonZeroExit === true && result.reason === "exit") {
+            return {
+              text: stdout,
+              rawStdout: result.stdout,
+              rawStderr: result.stderr,
+              exitCode: result.exitCode,
+              reason: result.reason,
+              sessionId: undefined,
+            };
+          }
           const err = stderr || stdout || "CLI failed.";
           const reason = classifyFailoverReason(err) ?? "unknown";
           const status = resolveFailoverStatus(reason);
@@ -430,15 +447,34 @@ export async function runCliAgent(params: {
         const outputMode = useResume ? (backend.resumeOutput ?? backend.output) : backend.output;
 
         if (outputMode === "text") {
-          return { text: stdout, sessionId: undefined };
+          return {
+            text: stdout,
+            rawStdout: result.stdout,
+            rawStderr: result.stderr,
+            exitCode: result.exitCode,
+            reason: result.reason,
+            sessionId: undefined,
+          };
         }
         if (outputMode === "jsonl") {
           const parsed = parseCliJsonl(stdout, backend);
-          return parsed ?? { text: stdout };
+          return {
+            ...(parsed ?? { text: stdout }),
+            rawStdout: result.stdout,
+            rawStderr: result.stderr,
+            exitCode: result.exitCode,
+            reason: result.reason,
+          };
         }
 
         const parsed = parseCliJson(stdout, backend);
-        return parsed ?? { text: stdout };
+        return {
+          ...(parsed ?? { text: stdout }),
+          rawStdout: result.stdout,
+          rawStderr: result.stderr,
+          exitCode: result.exitCode,
+          reason: result.reason,
+        };
       });
 
       return output;
@@ -459,6 +495,12 @@ export async function runCliAgent(params: {
       payloads,
       meta: {
         durationMs: Date.now() - started,
+        processResult: {
+          stdout: output.rawStdout,
+          stderr: output.rawStderr,
+          exitCode: output.exitCode,
+          reason: output.reason,
+        },
         systemPromptReport,
         agentMeta: {
           sessionId: output.sessionId ?? params.cliSessionId ?? params.sessionId ?? "",
@@ -489,6 +531,12 @@ export async function runCliAgent(params: {
           payloads,
           meta: {
             durationMs: Date.now() - started,
+            processResult: {
+              stdout: output.rawStdout,
+              stderr: output.rawStderr,
+              exitCode: output.exitCode,
+              reason: output.reason,
+            },
             systemPromptReport,
             agentMeta: {
               sessionId: output.sessionId ?? params.sessionId ?? "",

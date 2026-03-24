@@ -31,6 +31,13 @@ export const DEFAULT_HEARTBEAT_FILENAME = "HEARTBEAT.md";
 export const DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md";
 export const DEFAULT_MEMORY_FILENAME = "MEMORY.md";
 export const DEFAULT_MEMORY_ALT_FILENAME = "memory.md";
+const LEGACY_BOOTSTRAP_FILENAMES = [
+  DEFAULT_SOUL_FILENAME,
+  DEFAULT_TOOLS_FILENAME,
+  DEFAULT_IDENTITY_FILENAME,
+  DEFAULT_USER_FILENAME,
+  DEFAULT_BOOTSTRAP_FILENAME,
+] as const;
 const WORKSPACE_STATE_DIRNAME = ".openclaw";
 const WORKSPACE_STATE_FILENAME = "workspace-state.json";
 const WORKSPACE_STATE_VERSION = 1;
@@ -312,6 +319,7 @@ async function ensureGitRepo(dir: string, isBrandNewWorkspace: boolean) {
 export async function ensureAgentWorkspace(params?: {
   dir?: string;
   ensureBootstrapFiles?: boolean;
+  pruneLegacyBootstrapFiles?: boolean;
 }): Promise<{
   dir: string;
   agentsPath?: string;
@@ -325,6 +333,14 @@ export async function ensureAgentWorkspace(params?: {
   const rawDir = params?.dir?.trim() ? params.dir.trim() : DEFAULT_AGENT_WORKSPACE_DIR;
   const dir = resolveUserPath(rawDir);
   await fs.mkdir(dir, { recursive: true });
+
+  if (params?.pruneLegacyBootstrapFiles) {
+    await Promise.all(
+      LEGACY_BOOTSTRAP_FILENAMES.map(async (name) => {
+        await fs.rm(path.join(dir, name), { force: true });
+      }),
+    );
+  }
 
   if (!params?.ensureBootstrapFiles) {
     return { dir };

@@ -1,0 +1,37 @@
+idea stage complete prompt
+==========================
+
+This file records the exact prompt payload used for the current idea-stage run.
+It reflects:
+- idea: 更好的test time computation的方法 针对开放领域科学发现任务比如 hivemind
+- count: 1
+
+[API instructions]
+Return valid JSON only. Do not wrap the answer in markdown fences.
+
+[API input]
+你现在负责 research pipeline 的第 1 阶段：idea refinement。
+
+目标：
+- 内部探索 1 个候选方向。
+- 只选择一个最值得推进的方向，输出最终 refined idea。
+- 设计论文 section 结构，要求具体、可执行、文件系统安全。
+- 优先吸收原始研究目标中给出的约束：目标会议、目标赛道、研究领域、个人能力背景、算力预算、实验可行性。
+- 如果原始研究目标要求参考最新文献，优先综合 2025 年及之后的相关顶会工作与趋势，但不要虚构具体论文细节。
+- 产出的方向必须兼顾创新性与落地性，避免依赖大规模预训练、超大算力或难以获取的数据闭源条件。
+- 如果原始研究目标同时提到主会与 Data / Datasets / Benchmarks 等赛道，优先给出一个主会取向的核心方向，并确保它也能自然扩展到数据集或 benchmark 贡献。
+- refined idea 应该是一段高密度研究提案，而不是一句口号；需要明确问题、切入点、为什么值得做、为什么在给定约束下可做。
+- sections 只是一个轻量目录，用来确定章节集合与顺序；详细到“每节具体写什么”会在下一阶段单独生成。
+- 每个 section 只需要包含 id 和 name。
+- name 同时作为章节名和后续本地目录名来源，所以要简短、稳定、文件系统安全，优先使用真实学术论文章节名的 slug 化版本，例如 introduction、related-work、method、experiments、analysis、conclusion。
+- 不要发明论文中不存在的章节名（如 problem-setup、data-benchmark）。
+- 典型的计算机科学论文结构是：Introduction → Related Work → Method → Experiments → Conclusion，可根据具体研究方向微调，但应遵循学术惯例。
+
+只返回 JSON，不要包 markdown fence，结构如下：
+{
+  "refinedIdea": "string",
+  "sections": [{"id":"S01","name":"introduction"}]
+}
+
+原始研究目标：
+更好的test time computation的方法 针对开放领域科学发现任务比如 hivemind
